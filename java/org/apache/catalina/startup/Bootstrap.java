@@ -16,6 +16,13 @@
  */
 package org.apache.catalina.startup;
 
+import org.apache.catalina.Globals;
+import org.apache.catalina.security.SecurityClassLoad;
+import org.apache.catalina.startup.ClassLoaderFactory.Repository;
+import org.apache.catalina.startup.ClassLoaderFactory.RepositoryType;
+import org.apache.juli.logging.Log;
+import org.apache.juli.logging.LogFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -26,13 +33,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.apache.catalina.Globals;
-import org.apache.catalina.security.SecurityClassLoad;
-import org.apache.catalina.startup.ClassLoaderFactory.Repository;
-import org.apache.catalina.startup.ClassLoaderFactory.RepositoryType;
-import org.apache.juli.logging.Log;
-import org.apache.juli.logging.LogFactory;
 
 
 /**
@@ -144,12 +144,17 @@ public final class Bootstrap {
 
     private void initClassLoaders() {
         try {
+            /*
+            *   创建common类加载器
+            */
             commonLoader = createClassLoader("common", null);
             if( commonLoader == null ) {
                 // no config file, default to this loader - we might be in a 'single' env.
                 commonLoader=this.getClass().getClassLoader();
             }
+            //建立 server loader类加载器
             catalinaLoader = createClassLoader("server", commonLoader);
+            // 建立 shared loader 类加载器
             sharedLoader = createClassLoader("shared", commonLoader);
         } catch (Throwable t) {
             handleThrowable(t);
@@ -161,11 +166,11 @@ public final class Bootstrap {
 
     private ClassLoader createClassLoader(String name, ClassLoader parent)
         throws Exception {
-
+        //获取{name}.loader 属性，对应配置在{tomcat_home}/conf/catalina.properties 中
         String value = CatalinaProperties.getProperty(name + ".loader");
         if ((value == null) || (value.equals("")))
             return parent;
-
+        //填充属性中{catalina.base}等系统变量
         value = replace(value);
 
         List<Repository> repositories = new ArrayList<>();
@@ -201,7 +206,7 @@ public final class Bootstrap {
 
     /**
      * System property replacement in the given string.
-     *
+     *  将传进来的字符串中的${propName} 占位符用系统常量替代
      * @param str The original string
      * @return the modified string
      */
@@ -250,7 +255,7 @@ public final class Bootstrap {
      * @throws Exception Fatal initialization error
      */
     public void init() throws Exception {
-
+        //初试化类加载器
         initClassLoaders();
 
         Thread.currentThread().setContextClassLoader(catalinaLoader);
@@ -455,7 +460,7 @@ public final class Bootstrap {
 
         synchronized (daemonLock) {
             if (daemon == null) {
-                // Don't set daemon until init() has completed
+                // 没有设置守护进程，执行init()
                 Bootstrap bootstrap = new Bootstrap();
                 try {
                     bootstrap.init();
