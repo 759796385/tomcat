@@ -40,9 +40,9 @@ public class PojoMessageHandlerWholeText
         extends PojoMessageHandlerWholeBase<String> {
 
     private static final StringManager sm =
-            StringManager.getManager(PojoMessageHandlerWholeText.class);
+            StringManager.getManager(Constants.PACKAGE_NAME);
 
-    private final List<Decoder> decoders = new ArrayList<>();
+    private final List<Decoder> decoders = new ArrayList<Decoder>();
     private final Class<?> primitiveType;
 
     public PojoMessageHandlerWholeText(Object pojo, Method method,
@@ -75,13 +75,13 @@ public class PojoMessageHandlerWholeText
             if (decoderClazzes != null) {
                 for (Class<? extends Decoder> decoderClazz : decoderClazzes) {
                     if (Text.class.isAssignableFrom(decoderClazz)) {
-                        Text<?> decoder = (Text<?>) decoderClazz.getConstructor().newInstance();
+                        Text<?> decoder = (Text<?>) decoderClazz.newInstance();
                         decoder.init(config);
                         decoders.add(decoder);
                     } else if (TextStream.class.isAssignableFrom(
                             decoderClazz)) {
                         TextStream<?> decoder =
-                                (TextStream<?>) decoderClazz.getConstructor().newInstance();
+                                (TextStream<?>) decoderClazz.newInstance();
                         decoder.init(config);
                         decoders.add(decoder);
                     } else {
@@ -89,7 +89,9 @@ public class PojoMessageHandlerWholeText
                     }
                 }
             }
-        } catch (ReflectiveOperationException e) {
+        } catch (IllegalAccessException e) {
+            throw new IllegalArgumentException(e);
+        } catch (InstantiationException e) {
             throw new IllegalArgumentException(e);
         }
     }

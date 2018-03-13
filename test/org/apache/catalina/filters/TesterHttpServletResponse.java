@@ -24,8 +24,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.function.Supplier;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.ServletResponse;
@@ -42,8 +40,8 @@ import org.apache.catalina.connector.Request;
 public class TesterHttpServletResponse implements HttpServletResponse {
 
     private PrintWriter pw;
-    private List<String> headerNames = new ArrayList<>();
-    private List<String> headerValues = new ArrayList<>();
+    private List<String> headerNames = new ArrayList<String>();
+    private List<String> headerValues = new ArrayList<String>();
     private int status;
 
     public TesterHttpServletResponse() {
@@ -133,14 +131,13 @@ public class TesterHttpServletResponse implements HttpServletResponse {
     public void setError() {/* NOOP */}
     public boolean isError() { return false; }
     /**
-     * @return Always null
-     * @throws IOException Never happens
+     * @throws IOException
      */
     public ServletOutputStream createOutputStream() throws IOException {
         return null;
     }
     /**
-     * @throws IOException Never happens
+     * @throws IOException
      */
     public void finishResponse() throws IOException {/* NOOP */}
     public int getContentLength() { return -1; }
@@ -149,24 +146,24 @@ public class TesterHttpServletResponse implements HttpServletResponse {
     public PrintWriter getReporter() { return null; }
     public void recycle() {/* NOOP */}
     /**
-     * @param b Unused
-     * @throws IOException Never happens
+     * @param b
+     * @throws IOException
      */
     public void write(int b) throws IOException {
         // NOOP
     }
     /**
-     * @param b Unused
-     * @throws IOException Never happens
+     * @param b
+     * @throws IOException
      */
     public void write(byte b[]) throws IOException {
         // NOOP
     }
     /**
-     * @param b   Unused
-     * @param off Unused
-     * @param len Unused
-     * @throws IOException Never happens
+     * @param b
+     * @param off
+     * @param len
+     * @throws IOException
      */
     public void write(byte b[], int off, int len) throws IOException {
         // NOOP
@@ -216,19 +213,19 @@ public class TesterHttpServletResponse implements HttpServletResponse {
     public boolean containsHeader(String name) { return false; }
     @Override
     public String encodeRedirectURL(String url) { return null; }
-    /** @deprecated Do not use */
+    /** @deprecated */
     @Override
     @Deprecated
     public String encodeRedirectUrl(String url) { return null; }
     @Override
     public String encodeURL(String url) { return null; }
-    /** @deprecated Do not use */
+    /** @deprecated */
     @Override
     @Deprecated
     public String encodeUrl(String url) { return null; }
     /**
      *
-     * @throws IOException Never happens
+     * @throws IOException
      */
     public void sendAcknowledgement() throws IOException {/* NOOP */}
     @Override
@@ -243,14 +240,8 @@ public class TesterHttpServletResponse implements HttpServletResponse {
     public void setDateHeader(String name, long value) {/* NOOP */}
     @Override
     public void setIntHeader(String name, int value) {/* NOOP */}
-    /** @deprecated Do not use */
+    /** @deprecated */
     @Override
     @Deprecated
     public void setStatus(int status, String message) {/* NOOP */}
-    @Override
-    public void setContentLengthLong(long length) {/* NOOP */}
-    @Override
-    public void setTrailerFields(Supplier<Map<String, String>> supplier) { /* NOOP */ }
-    @Override
-    public Supplier<Map<String, String>> getTrailerFields() { return null; }
 }

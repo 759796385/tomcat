@@ -25,7 +25,8 @@ import java.util.EventListener;
  * This may be as a result of a servlet programmer explicitly unbinding an
  * attribute from a session, due to a session being invalidated, or due to a
  * session timing out.
- *
+ * 
+ * @author Various
  * @see HttpSession
  * @see HttpSessionBindingEvent
  */
@@ -34,24 +35,20 @@ public interface HttpSessionBindingListener extends EventListener {
     /**
      * Notifies the object that it is being bound to a session and identifies
      * the session.
-     * The default implementation is a NO-OP.
-     *
+     * 
      * @param event
      *            the event that identifies the session
      * @see #valueUnbound
      */
-    public default void valueBound(HttpSessionBindingEvent event) {
-    }
+    public void valueBound(HttpSessionBindingEvent event);
 
     /**
      * Notifies the object that it is being unbound from a session and
      * identifies the session.
-     * The default implementation is a NO-OP.
-     *
+     * 
      * @param event
      *            the event that identifies the session
      * @see #valueBound
      */
-    public default void valueUnbound(HttpSessionBindingEvent event) {
-    }
+    public void valueUnbound(HttpSessionBindingEvent event);
 }

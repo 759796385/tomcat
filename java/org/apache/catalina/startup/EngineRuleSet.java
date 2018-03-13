@@ -14,10 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+
 package org.apache.catalina.startup;
 
+
 import org.apache.tomcat.util.digester.Digester;
-import org.apache.tomcat.util.digester.RuleSet;
+import org.apache.tomcat.util.digester.RuleSetBase;
+
 
 /**
  * <p><strong>RuleSet</strong> for processing the contents of a
@@ -27,24 +31,29 @@ import org.apache.tomcat.util.digester.RuleSet;
  *
  * @author Craig R. McClanahan
  */
-public class EngineRuleSet implements RuleSet {
+public class EngineRuleSet extends RuleSetBase {
+
 
     // ----------------------------------------------------- Instance Variables
+
 
     /**
      * The matching pattern prefix to use for recognizing our elements.
      */
-    protected final String prefix;
+    protected String prefix = null;
 
 
     // ------------------------------------------------------------ Constructor
+
 
     /**
      * Construct an instance of this <code>RuleSet</code> with the default
      * matching pattern prefix.
      */
     public EngineRuleSet() {
+
         this("");
+
     }
 
 
@@ -56,11 +65,16 @@ public class EngineRuleSet implements RuleSet {
      *  trailing slash character)
      */
     public EngineRuleSet(String prefix) {
+
+        super();
+        this.namespaceURI = null;
         this.prefix = prefix;
+
     }
 
 
     // --------------------------------------------------------- Public Methods
+
 
     /**
      * <p>Add the set of Rule instances defined in this RuleSet to the
@@ -73,7 +87,7 @@ public class EngineRuleSet implements RuleSet {
      */
     @Override
     public void addRuleInstances(Digester digester) {
-
+        
         digester.addObjectCreate(prefix + "Engine",
                                  "org.apache.catalina.core.StandardEngine",
                                  "className");
@@ -84,7 +98,7 @@ public class EngineRuleSet implements RuleSet {
                           "engineConfigClass"));
         digester.addSetNext(prefix + "Engine",
                             "setContainer",
-                            "org.apache.catalina.Engine");
+                            "org.apache.catalina.Container");
 
         //Cluster configuration start
         digester.addObjectCreate(prefix + "Engine/Cluster",
@@ -114,5 +128,8 @@ public class EngineRuleSet implements RuleSet {
         digester.addSetNext(prefix + "Engine/Valve",
                             "addValve",
                             "org.apache.catalina.Valve");
+
     }
+
+
 }

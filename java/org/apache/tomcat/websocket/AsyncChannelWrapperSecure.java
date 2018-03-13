@@ -51,7 +51,7 @@ public class AsyncChannelWrapperSecure implements AsyncChannelWrapper {
     private static final Log log =
             LogFactory.getLog(AsyncChannelWrapperSecure.class);
     private static final StringManager sm =
-            StringManager.getManager(AsyncChannelWrapperSecure.class);
+            StringManager.getManager(Constants.PACKAGE_NAME);
 
     private static final ByteBuffer DUMMY = ByteBuffer.allocate(16921);
     private final AsynchronousSocketChannel socketChannel;
@@ -76,7 +76,7 @@ public class AsyncChannelWrapperSecure implements AsyncChannelWrapper {
 
     @Override
     public Future<Integer> read(ByteBuffer dst) {
-        WrapperFuture<Integer,Void> future = new WrapperFuture<>();
+        WrapperFuture<Integer,Void> future = new WrapperFuture<Integer, Void>();
 
         if (!reading.compareAndSet(false, true)) {
             throw new IllegalStateException(sm.getString(
@@ -95,7 +95,7 @@ public class AsyncChannelWrapperSecure implements AsyncChannelWrapper {
             CompletionHandler<Integer,B> handler) {
 
         WrapperFuture<Integer,B> future =
-                new WrapperFuture<>(handler, attachment);
+                new WrapperFuture<Integer, B>(handler, attachment);
 
         if (!reading.compareAndSet(false, true)) {
             throw new IllegalStateException(sm.getString(
@@ -110,7 +110,7 @@ public class AsyncChannelWrapperSecure implements AsyncChannelWrapper {
     @Override
     public Future<Integer> write(ByteBuffer src) {
 
-        WrapperFuture<Long,Void> inner = new WrapperFuture<>();
+        WrapperFuture<Long,Void> inner = new WrapperFuture<Long, Void>();
 
         if (!writing.compareAndSet(false, true)) {
             throw new IllegalStateException(sm.getString(
@@ -132,7 +132,7 @@ public class AsyncChannelWrapperSecure implements AsyncChannelWrapper {
             CompletionHandler<Long,B> handler) {
 
         WrapperFuture<Long,B> future =
-                new WrapperFuture<>(handler, attachment);
+                new WrapperFuture<Long, B>(handler, attachment);
 
         if (!writing.compareAndSet(false, true)) {
             throw new IllegalStateException(sm.getString(
@@ -157,7 +157,7 @@ public class AsyncChannelWrapperSecure implements AsyncChannelWrapper {
     @Override
     public Future<Void> handshake() throws SSLException {
 
-        WrapperFuture<Void,Void> wFuture = new WrapperFuture<>();
+        WrapperFuture<Void,Void> wFuture = new WrapperFuture<Void, Void>();
 
         Thread t = new WebSocketSslHandshakeThread(wFuture);
         t.start();
@@ -405,14 +405,16 @@ public class AsyncChannelWrapperSecure implements AsyncChannelWrapper {
                             handshaking = false;
                             break;
                         }
-                        case NOT_HANDSHAKING: {
-                            throw new SSLException(
-                                    sm.getString("asyncChannelWrapperSecure.notHandshaking"));
+                        default: {
+                            throw new SSLException("TODO");
                         }
                     }
                 }
-            } catch (SSLException | InterruptedException |
-                    ExecutionException e) {
+            } catch (SSLException e) {
+                hFuture.fail(e);
+            } catch (InterruptedException e) {
+                hFuture.fail(e);
+            } catch (ExecutionException e) {
                 hFuture.fail(e);
             }
 
@@ -427,14 +429,13 @@ public class AsyncChannelWrapperSecure implements AsyncChannelWrapper {
 
             if (resultStatus != Status.OK &&
                     (wrap || resultStatus != Status.BUFFER_UNDERFLOW)) {
-                throw new SSLException(
-                        sm.getString("asyncChannelWrapperSecure.check.notOk", resultStatus));
+                throw new SSLException("TODO");
             }
             if (wrap && result.bytesConsumed() != 0) {
-                throw new SSLException(sm.getString("asyncChannelWrapperSecure.check.wrap"));
+                throw new SSLException("TODO");
             }
             if (!wrap && result.bytesProduced() != 0) {
-                throw new SSLException(sm.getString("asyncChannelWrapperSecure.check.unwrap"));
+                throw new SSLException("TODO");
             }
         }
     }

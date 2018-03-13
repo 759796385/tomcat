@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,8 +20,36 @@ package org.apache.catalina.authenticator;
 
 
 public class Constants {
+
+    public static final String Package = "org.apache.catalina.authenticator";
+
     // Authentication methods for login configuration
-    // Servlet spec schemes are defined in HttpServletRequest
+    // Servlet spec schemes
+
+    /**
+     * @deprecated Replaced by HttpServletRequest.BASIC_AUTH
+     */
+    @Deprecated
+    public static final String BASIC_METHOD = "BASIC";
+
+    /**
+     * @deprecated Replaced by HttpServletRequest.CLIENT_CERT_AUTH
+     */
+    @Deprecated
+    public static final String CERT_METHOD = "CLIENT_CERT";
+
+    /**
+     * @deprecated Replaced by HttpServletRequest.DIGEST_AUTH
+     */
+    @Deprecated
+    public static final String DIGEST_METHOD = "DIGEST";
+
+    /**
+     * @deprecated Replaced by HttpServletRequest.FORM_AUTH
+     */
+    @Deprecated
+    public static final String FORM_METHOD = "FORM";
+
     // Vendor specific schemes
     public static final String SPNEGO_METHOD = "SPNEGO";
 
@@ -38,6 +66,8 @@ public class Constants {
     public static final String DEFAULT_JAAS_CONF = "conf/jaas.conf";
     public static final String DEFAULT_LOGIN_MODULE_NAME =
         "com.sun.security.jgss.krb5.accept";
+    public static final String USE_SUBJECT_CREDS_ONLY_PROPERTY =
+            "javax.security.auth.useSubjectCredsOnly";
 
     // Cookie name for single sign on support
     public static final String SINGLE_SIGN_ON_COOKIE =
@@ -53,11 +83,7 @@ public class Constants {
      * request is associated.
      */
     public static final String REQ_SSOID_NOTE =
-            "org.apache.catalina.request.SSOID";
-
-
-    public static final String REQ_JASPIC_SUBJECT_NOTE =
-            "org.apache.catalina.authenticator.jaspic.SUBJECT";
+      "org.apache.catalina.request.SSOID";
 
 
     // ---------------------------------------------------------- Session Notes

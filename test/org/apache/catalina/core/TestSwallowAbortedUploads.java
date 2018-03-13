@@ -23,7 +23,6 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -50,7 +49,7 @@ public class TestSwallowAbortedUploads extends TomcatBaseTest {
 
     private static Log log = LogFactory.getLog(TestSwallowAbortedUploads.class);
 
-    /*
+    /**
      * Test whether size limited uploads correctly handle connection draining.
      */
     public Exception doAbortedUploadTest(AbortedUploadClient client, boolean limited,
@@ -68,7 +67,7 @@ public class TestSwallowAbortedUploads extends TomcatBaseTest {
         return ex;
     }
 
-    /*
+    /**
      * Test whether aborted POST correctly handle connection draining.
      */
     public Exception doAbortedPOSTTest(AbortedPOSTClient client, int status,
@@ -128,7 +127,7 @@ public class TestSwallowAbortedUploads extends TomcatBaseTest {
         AbortedUploadClient client = new AbortedUploadClient();
         Exception ex = doAbortedUploadTest(client, true, false);
         Assert.assertTrue("Limited upload with swallow disabled does not generate client exception",
-                   ex instanceof java.net.SocketException);
+                   ex != null && ex instanceof java.net.SocketException);
         client.reset();
     }
 
@@ -174,7 +173,7 @@ public class TestSwallowAbortedUploads extends TomcatBaseTest {
         AbortedPOSTClient client = new AbortedPOSTClient();
         Exception ex = doAbortedPOSTTest(client, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE, false);
         Assert.assertTrue("Limited upload with swallow disabled does not generate client exception",
-                   ex instanceof java.net.SocketException);
+                   ex != null && ex instanceof java.net.SocketException);
         client.reset();
     }
 
@@ -230,10 +229,13 @@ public class TestSwallowAbortedUploads extends TomcatBaseTest {
         private static final int limitSize = 100;
         private static final int hugeSize = 2000000;
 
+        private boolean init;
         private Context context;
 
         private synchronized void init(boolean limited, boolean swallow)
                 throws Exception {
+            if (init)
+                return;
 
             Tomcat tomcat = getTomcatInstance();
             context = tomcat.addContext("", TEMP_DIR);
@@ -249,11 +251,13 @@ public class TestSwallowAbortedUploads extends TomcatBaseTest {
             } else {
                 w.setMultipartConfigElement(new MultipartConfigElement(""));
             }
-            context.addServletMappingDecoded(URI, servletName);
+            context.addServletMapping(URI, servletName);
             context.setSwallowAbortedUploads(swallow);
 
             tomcat.start();
             setPort(tomcat.getConnector().getLocalPort());
+
+            init = true;
         }
 
         private Exception doRequest(boolean limited, boolean swallow) {
@@ -290,7 +294,7 @@ public class TestSwallowAbortedUploads extends TomcatBaseTest {
                         "ASCII");
 
                 request = new String[] { "POST http://localhost:" + getPort() + URI + " HTTP/1.1" + CRLF
-                        + "Host: localhost:" + getPort() + CRLF
+                        + "Host: localhost" + CRLF
                         + "Connection: close" + CRLF
                         + "Content-Type: multipart/form-data; boundary=" + boundary + CRLF
                         + "Content-Length: " + content.length() + CRLF
@@ -346,10 +350,13 @@ public class TestSwallowAbortedUploads extends TomcatBaseTest {
         private static final String servletName = "uploadAborted";
         private static final int hugeSize = 2000000;
 
+        private boolean init;
         private Context context;
 
         private synchronized void init(int status, boolean swallow)
                 throws Exception {
+            if (init)
+                return;
 
             Tomcat tomcat = getTomcatInstance();
             context = tomcat.addContext("", TEMP_DIR);
@@ -357,12 +364,14 @@ public class TestSwallowAbortedUploads extends TomcatBaseTest {
             servlet.setStatus(status);
             Tomcat.addServlet(context, servletName,
                               servlet);
-            context.addServletMappingDecoded(URI, servletName);
+            context.addServletMapping(URI, servletName);
             context.setSwallowAbortedUploads(swallow);
 
             tomcat.start();
 
             setPort(tomcat.getConnector().getLocalPort());
+
+            init = true;
         }
 
         private Exception doRequest(int status, boolean swallow) {
@@ -381,7 +390,7 @@ public class TestSwallowAbortedUploads extends TomcatBaseTest {
                 String content = new String(body);
 
                 request = new String[] { "POST http://localhost:" + getPort() + URI + " HTTP/1.1" + CRLF
-                        + "Host: localhost:" + getPort() + CRLF
+                        + "Host: localhost" + CRLF
                         + "Connection: close" + CRLF
                         + "Content-Length: " + content.length() + CRLF
                         + CRLF
@@ -432,10 +441,12 @@ public class TestSwallowAbortedUploads extends TomcatBaseTest {
         Exception writeEx = null;
         Exception readEx = null;
         String responseLine = null;
+        Socket conn = null;
 
-        try (Socket conn = new Socket("localhost", getPort())) {
+        try {
+            conn = new Socket("localhost", getPort());
             Writer writer = new OutputStreamWriter(
-                    conn.getOutputStream(), StandardCharsets.US_ASCII);
+                    conn.getOutputStream(), "US-ASCII");
             writer.write("PUT /does-not-exist HTTP/1.1\r\n");
             writer.write("Host: any\r\n");
             writer.write("Transfer-encoding: chunked\r\n");
@@ -455,11 +466,15 @@ public class TestSwallowAbortedUploads extends TomcatBaseTest {
 
             try {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(
-                        conn.getInputStream(), StandardCharsets.US_ASCII));
+                        conn.getInputStream(), "US-ASCII"));
 
                 responseLine = reader.readLine();
             } catch (IOException e) {
                 readEx = e;
+            }
+        } finally {
+            if (conn != null) {
+                conn.close();
             }
         }
 

@@ -5,16 +5,18 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+ */ 
+
 package org.apache.tomcat.util.digester;
+
 
 /**
  * <p>Public interface defining a shorthand means of configuring a complete
@@ -32,7 +34,22 @@ package org.apache.tomcat.util.digester;
  *     your RuleSet to configure the necessary rules.</li>
  * </ul>
  */
+
 public interface RuleSet {
+
+
+    // ------------------------------------------------------------- Properties
+
+
+    /**
+     * Return the namespace URI that will be applied to all Rule instances
+     * created from this RuleSet.
+     */
+    public String getNamespaceURI();
+
+
+    // --------------------------------------------------------- Public Methods
+
 
     /**
      * Add the set of Rule instances defined in this RuleSet to the
@@ -43,5 +60,7 @@ public interface RuleSet {
      * @param digester Digester instance to which the new Rule instances
      *  should be added.
      */
-    void addRuleInstances(Digester digester);
+    public void addRuleInstances(Digester digester);
+
+
 }

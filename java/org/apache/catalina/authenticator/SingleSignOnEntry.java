@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,9 +21,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.security.Principal;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -46,19 +46,19 @@ public class SingleSignOnEntry implements Serializable {
 
     // ------------------------------------------------------  Instance Fields
 
-    private String authType = null;
+    protected String authType = null;
 
-    private String password = null;
+    protected String password = null;
 
     // Marked as transient so special handling can be applied to serialization
-    private transient Principal principal = null;
+    protected transient Principal principal = null;
 
-    private final Map<SingleSignOnSessionKey,SingleSignOnSessionKey> sessionKeys =
-            new ConcurrentHashMap<>();
+    protected ConcurrentMap<SingleSignOnSessionKey,SingleSignOnSessionKey> sessionKeys =
+            new ConcurrentHashMap<SingleSignOnSessionKey, SingleSignOnSessionKey>();
 
-    private String username = null;
+    protected String username = null;
 
-    private boolean canReauthenticate = false;
+    protected boolean canReauthenticate = false;
 
     // ---------------------------------------------------------  Constructors
 
@@ -86,7 +86,6 @@ public class SingleSignOnEntry implements Serializable {
      *
      * @param sso       The <code>SingleSignOn</code> valve that is managing
      *                  the SSO session.
-     * @param ssoId     The ID of the SSO session.
      * @param session   The <code>Session</code> being associated with the SSO.
      */
     public void addSession(SingleSignOn sso, String ssoId, Session session) {

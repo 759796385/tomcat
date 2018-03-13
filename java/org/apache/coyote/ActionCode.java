@@ -21,7 +21,7 @@ package org.apache.coyote;
  * ActionCodes represent callbacks from the servlet container to the coyote
  * connector. Actions are implemented by ProtocolHandler, using the ActionHook
  * interface.
- *
+ * 
  * @see ProtocolHandler
  * @see ActionHook
  * @author Remy Maucherat
@@ -47,6 +47,15 @@ public enum ActionCode {
      */
     CLIENT_FLUSH,
 
+    CUSTOM,
+    RESET,
+
+    /**
+     * Hook called after request, but before recycling. Can be used for logging,
+     * to update counters, custom cleanup - the request is still visible
+     */
+    POST_REQUEST,
+
     /**
      * Has the processor been placed into the error state? Note that the
      * response may not have an appropriate error code set.
@@ -54,37 +63,31 @@ public enum ActionCode {
     IS_ERROR,
 
     /**
-     * The processor may have been placed into an error state and some error
-     * states do not permit any further I/O. Is I/O currently allowed?
-     */
-    IS_IO_ALLOWED,
-
-    /**
      * Hook called if swallowing request input should be disabled.
      * Example: Cancel a large file upload.
-     *
+     * 
      */
     DISABLE_SWALLOW_INPUT,
 
     /**
-     * Callback for lazy evaluation - extract the remote host name and address.
+     * Callback for lazy evaluation - extract the remote host address.
      */
     REQ_HOST_ATTRIBUTE,
 
     /**
-     * Callback for lazy evaluation - extract the remote host address.
+     * Callback for lazy evaluation - extract the remote host infos (address,
+     * name, port) and local address.
      */
     REQ_HOST_ADDR_ATTRIBUTE,
 
     /**
-     * Callback for lazy evaluation - extract the SSL-related attributes
-     * including the client certificate if present.
+     * Callback for lazy evaluation - extract the SSL-related attributes.
      */
     REQ_SSL_ATTRIBUTE,
 
     /**
-     * Force a TLS re-handshake and make the resulting client certificate (if
-     * any) available as a request attribute.
+     * Callback for lazy evaluation - extract the SSL-certificate (including
+     * forcing a re-handshake if necessary)
      */
     REQ_SSL_CERTIFICATE,
 
@@ -114,9 +117,29 @@ public enum ActionCode {
     REQ_SET_BODY_REPLAY,
 
     /**
+     * Callback for begin Comet processing.
+     */
+    COMET_BEGIN,
+
+    /**
+     * Callback for end Comet processing.
+     */
+    COMET_END,
+
+    /**
      * Callback for getting the amount of available bytes.
      */
     AVAILABLE,
+
+    /**
+     * Callback for an asynchronous close of the Comet event
+     */
+    COMET_CLOSE,
+
+    /**
+     * Callback for setting the timeout asynchronously
+     */
+    COMET_SETTIMEOUT,
 
     /**
      * Callback for an async request.
@@ -146,28 +169,28 @@ public enum ActionCode {
      * {@link javax.servlet.AsyncContext#complete()}.
      */
     ASYNC_COMPLETE,
-
+    
     /**
      * Callback to trigger the processing of an async timeout.
      */
     ASYNC_TIMEOUT,
-
+    
     /**
      * Callback to trigger the error processing.
      */
     ASYNC_ERROR,
-
+    
     /**
      * Callback for an async call to
      * {@link javax.servlet.AsyncContext#setTimeout(long)}
      */
     ASYNC_SETTIMEOUT,
-
+    
     /**
      * Callback to determine if async processing is in progress.
      */
     ASYNC_IS_ASYNC,
-
+    
     /**
      * Callback to determine if async dispatch is in progress.
      */
@@ -194,76 +217,24 @@ public enum ActionCode {
     ASYNC_IS_ERROR,
 
     /**
+     * Callback to trigger Tomcat's proprietary HTTP upgrade process.
+     */
+    UPGRADE_TOMCAT,
+
+    /**
      * Callback to trigger post processing. Typically only used during error
      * handling to trigger essential processing that otherwise would be skipped.
      */
     ASYNC_POST_PROCESS,
-
+    
     /**
-     * Callback to trigger the HTTP upgrade process.
+     * Callback to trigger the Servlet 3.1 based HTTP upgrade process.
      */
     UPGRADE,
 
     /**
-     * Indicator that Servlet is interested in being
-     * notified when data is available to be read.
+     * Trigger end of request processing (remaining input swallowed, write any
+     * remaining parts of the response etc.).
      */
-    NB_READ_INTEREST,
-
-    /**
-     * Used with non-blocking writes to determine if a write is currently
-     * allowed (sets passed parameter to <code>true</code>) or not (sets passed
-     * parameter to <code>false</code>). If a write is not allowed then callback
-     * will be triggered at some future point when write becomes possible again.
-     */
-    NB_WRITE_INTEREST,
-
-    /**
-     * Indicates if the request body has been fully read.
-     */
-    REQUEST_BODY_FULLY_READ,
-
-    /**
-     * Indicates that the container needs to trigger a call to onDataAvailable()
-     * for the registered non-blocking read listener.
-     */
-    DISPATCH_READ,
-
-    /**
-     * Indicates that the container needs to trigger a call to onWritePossible()
-     * for the registered non-blocking write listener.
-     */
-    DISPATCH_WRITE,
-
-    /**
-     * Execute any non-blocking dispatches that have been registered via
-     * {@link #DISPATCH_READ} or {@link #DISPATCH_WRITE}. Typically required
-     * when the non-blocking listeners are configured on a thread where the
-     * processing wasn't triggered by a read or write event on the socket.
-     */
-    DISPATCH_EXECUTE,
-
-    /**
-     * Is server push supported and allowed for the current request?
-     */
-    IS_PUSH_SUPPORTED,
-
-    /**
-     * Push a request on behalf of the client of the current request.
-     */
-    PUSH_REQUEST,
-
-    /**
-     * Are the request trailer fields ready to be read? Note that this returns
-     * true if it is known that request trailer fields are not supported so an
-     * empty collection of trailers can then be read.
-     */
-    IS_TRAILER_FIELDS_READY,
-
-    /**
-     * Are HTTP trailer fields supported for the current response? Note that
-     * once an HTTP/1.1 response has been committed, it will no longer support
-     * trailer fields.
-     */
-    IS_TRAILER_FIELDS_SUPPORTED
+    END_REQUEST
 }

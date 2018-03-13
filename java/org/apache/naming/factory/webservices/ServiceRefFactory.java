@@ -5,15 +5,15 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+ */ 
 package org.apache.naming.factory.webservices;
 
 import java.lang.reflect.InvocationTargetException;
@@ -21,7 +21,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -33,6 +32,7 @@ import javax.naming.Context;
 import javax.naming.Name;
 import javax.naming.NamingException;
 import javax.naming.RefAddr;
+import javax.naming.Reference;
 import javax.naming.spi.ObjectFactory;
 import javax.wsdl.Definition;
 import javax.wsdl.Port;
@@ -53,14 +53,32 @@ import org.apache.naming.ServiceRef;
 
 /**
  * Object factory for Web Services.
- *
+ * 
  * @author Fabien Carrion
  */
-public class ServiceRefFactory implements ObjectFactory {
+
+public class ServiceRefFactory
+    implements ObjectFactory {
+
+
+    // ----------------------------------------------------------- Constructors
+
+
+    // -------------------------------------------------------------- Constants
+
+
+    // ----------------------------------------------------- Instance Variables
+
+
+    // --------------------------------------------------------- Public Methods
+
+
+    // -------------------------------------------------- ObjectFactory Methods
+
 
     /**
-     * Create a new serviceref instance.
-     *
+     * Crete a new serviceref instance.
+     * 
      * @param obj The reference object describing the webservice
      */
     @Override
@@ -69,10 +87,10 @@ public class ServiceRefFactory implements ObjectFactory {
     throws Exception {
 
         if (obj instanceof ServiceRef) {
-            ServiceRef ref = (ServiceRef) obj;
+            Reference ref = (Reference) obj;
 
             // ClassLoader
-            ClassLoader tcl =
+            ClassLoader tcl = 
                 Thread.currentThread().getContextClassLoader();
             if (tcl == null)
                 tcl = this.getClass().getClassLoader();
@@ -92,7 +110,8 @@ public class ServiceRefFactory implements ObjectFactory {
                 wsdlRefAddr = (String) tmp.getContent();
 
             // PortComponent
-            Hashtable<String,QName> portComponentRef = new Hashtable<>();
+            Hashtable<String,QName> portComponentRef =
+                new Hashtable<String,QName>();
 
             // Create QName object
             QName serviceQname = null;
@@ -176,15 +195,16 @@ public class ServiceRefFactory implements ObjectFactory {
                     Definition def = reader.readWSDL((new URL(wsdlRefAddr)).toExternalForm());
 
                     javax.wsdl.Service wsdlservice = def.getService(serviceQname);
-                    @SuppressWarnings("unchecked")
+                    @SuppressWarnings("unchecked") // Can't change the API
                     Map<String,?> ports = wsdlservice.getPorts();
                     Method m = serviceInterfaceClass.getMethod("setEndpointAddress",
                             new Class[] { java.lang.String.class,
                             java.lang.String.class });
-                    for (String portName : ports.keySet()) {
+                    for (Iterator<String> i = ports.keySet().iterator(); i.hasNext();) {
+                        String portName = i.next();
                         Port port = wsdlservice.getPort(portName);
                         String endpoint = getSOAPLocation(port);
-                        m.invoke(service, new Object[]{port.getName(), endpoint});
+                        m.invoke(service, new Object[] {port.getName(), endpoint });
                         portComponentRef.put(endpoint, new QName(port.getName()));
                     }
                 } catch (Exception e) {
@@ -222,11 +242,15 @@ public class ServiceRefFactory implements ObjectFactory {
             proxy.setPortComponentRef(portComponentRef);
 
             // Instantiate service with proxy class
+            Class<?>[] interfaces = null;
             Class<?>[] serviceInterfaces = serviceInterfaceClass.getInterfaces();
 
-            Class<?>[] interfaces = Arrays.copyOf(serviceInterfaces, serviceInterfaces.length + 1);
-            interfaces[interfaces.length - 1] = javax.xml.rpc.Service.class;
+            interfaces = new Class[serviceInterfaces.length + 1];
+            for (int i = 0; i < serviceInterfaces.length; i++) {
+                interfaces[i] = serviceInterfaces[i];
+            }
 
+            interfaces[interfaces.length - 1] = javax.xml.rpc.Service.class;
             Object proxyInstance = null;
             try {
                 proxyInstance = Proxy.newProxyInstance(tcl, interfaces, proxy);
@@ -235,13 +259,13 @@ public class ServiceRefFactory implements ObjectFactory {
             }
 
             // Use handler
-            if (ref.getHandlersSize() > 0) {
+            if (((ServiceRef) ref).getHandlersSize() > 0) {
 
                 HandlerRegistry handlerRegistry = service.getHandlerRegistry();
-                List<String> soaproles = new ArrayList<>();
+                ArrayList<String> soaproles = new ArrayList<String>();
 
-                while (ref.getHandlersSize() > 0) {
-                    HandlerRef handlerRef = ref.getHandler();
+                while (((ServiceRef) ref).getHandlersSize() > 0) {
+                    HandlerRef handlerRef = ((ServiceRef) ref).getHandler();
                     HandlerInfo handlerInfo = new HandlerInfo();
 
                     // Loading handler Class
@@ -257,9 +281,9 @@ public class ServiceRefFactory implements ObjectFactory {
 
                     // Load all datas relative to the handler : SOAPHeaders, config init element,
                     // portNames to be set on
-                    List<QName> headers = new ArrayList<>();
-                    Hashtable<String,String> config = new Hashtable<>();
-                    List<String> portNames = new ArrayList<>();
+                    ArrayList<QName> headers = new ArrayList<QName>();
+                    Hashtable<String,String> config = new Hashtable<String,String>();
+                    ArrayList<String> portNames = new ArrayList<String>();
                     for (int i = 0; i < handlerRef.size(); i++)
                         if (HandlerRef.HANDLER_LOCALPART.equals(handlerRef.get(i).getType())) {
                             String localpart = "";
@@ -296,10 +320,10 @@ public class ServiceRefFactory implements ObjectFactory {
                     handlerInfo.setHandlerConfig(config);
 
                     if (!portNames.isEmpty()) {
-                        for (String portName : portNames) {
-                            initHandlerChain(new QName(portName), handlerRegistry,
+                        Iterator<String> iter = portNames.iterator();
+                        while (iter.hasNext())
+                            initHandlerChain(new QName(iter.next()), handlerRegistry,
                                     handlerInfo, soaproles);
-                        }
                     } else {
                         Enumeration<QName> e = portComponentRef.elements();
                         while(e.hasMoreElements())
@@ -323,9 +347,11 @@ public class ServiceRefFactory implements ObjectFactory {
      */
     private String getSOAPLocation(Port port) {
         String endpoint = null;
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings("unchecked") // Can't change the API
         List<ExtensibilityElement> extensions = port.getExtensibilityElements();
-        for (ExtensibilityElement ext : extensions) {
+        for (Iterator<ExtensibilityElement> i = extensions.iterator();
+                i.hasNext();) {
+            ExtensibilityElement ext = i.next();
             if (ext instanceof SOAPAddress) {
                 SOAPAddress addr = (SOAPAddress) ext;
                 endpoint = addr.getLocationURI();
@@ -336,9 +362,9 @@ public class ServiceRefFactory implements ObjectFactory {
 
 
     private void initHandlerChain(QName portName, HandlerRegistry handlerRegistry,
-            HandlerInfo handlerInfo, List<String> soaprolesToAdd) {
+            HandlerInfo handlerInfo, ArrayList<String> soaprolesToAdd) {
         HandlerChain handlerChain = (HandlerChain) handlerRegistry.getHandlerChain(portName);
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings("unchecked") // Can't change the API
         Iterator<Handler> iter = handlerChain.iterator();
         while (iter.hasNext()) {
             Handler handler = iter.next();

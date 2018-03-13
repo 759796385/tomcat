@@ -37,7 +37,7 @@ import org.apache.tomcat.util.threads.ThreadPoolExecutor;
 public class AsyncChannelGroupUtil {
 
     private static final StringManager sm =
-            StringManager.getManager(AsyncChannelGroupUtil.class);
+            StringManager.getManager(Constants.PACKAGE_NAME);
 
     private static AsynchronousChannelGroup group = null;
     private static int usageCount = 0;

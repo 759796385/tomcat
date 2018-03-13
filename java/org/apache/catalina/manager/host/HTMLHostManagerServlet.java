@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,6 +23,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URLEncoder;
 import java.text.MessageFormat;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -32,14 +33,14 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.catalina.Container;
 import org.apache.catalina.Host;
+import org.apache.catalina.util.RequestUtil;
 import org.apache.catalina.util.ServerInfo;
 import org.apache.tomcat.util.res.StringManager;
-import org.apache.tomcat.util.security.Escape;
 
 /**
 * Servlet that enables remote management of the virtual hosts deployed
 * on the server.  Normally, this functionality will be protected by a security
-* constraint in the web application deployment descriptor.  However,
+* constraint in the web application deployment descriptor.  However, 
 * this requirement can be relaxed during testing.
 * <p>
 * The difference between the <code>HostManagerServlet</code> and this
@@ -93,8 +94,7 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
         } else if (command.equals("/list")) {
             // Nothing to do - always generate list
         } else if (command.equals("/add") || command.equals("/remove") ||
-                command.equals("/start") || command.equals("/stop") ||
-                command.equals("/persist")) {
+                command.equals("/start") || command.equals("/stop")) {
             message = smClient.getString(
                     "hostManagerServlet.postCommand", command);
         } else {
@@ -105,7 +105,7 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
         list(request, response, message, smClient);
     }
 
-
+    
     /**
      * Process a POST request for the specified resource.
      *
@@ -126,12 +126,12 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
         String command = request.getPathInfo();
 
         String name = request.getParameter("name");
-
+ 
         // Prepare our output writer to generate the response message
         response.setContentType("text/html; charset=" + Constants.CHARSET);
 
         String message = "";
-
+        
         // Process the requested command
         if (command == null) {
             // No command == list
@@ -143,8 +143,6 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
             message = start(name, smClient);
         } else if (command.equals("/stop")) {
             message = stop(name, smClient);
-        } else if (command.equals("/persist")) {
-            message = persist(smClient);
         } else {
             //Try GET
             doGet(request, response);
@@ -157,10 +155,7 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
     /**
      * Add a host using the specified parameters.
      *
-     * @param request The Servlet request
-     * @param name Host name
-     * @param smClient StringManager for the client's locale
-     * @return output
+     * @param name host name
      */
     protected String add(HttpServletRequest request,String name,
             StringManager smClient) {
@@ -177,9 +172,7 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
     /**
      * Remove the specified host.
      *
-     * @param name Host name
-     * @param smClient StringManager for the client's locale
-     * @return output
+     * @param name host name
      */
     protected String remove(String name, StringManager smClient) {
 
@@ -191,13 +184,11 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
         return stringWriter.toString();
     }
 
-
+    
     /**
      * Start the host with the specified name.
      *
      * @param name Host name
-     * @param smClient StringManager for the client's locale
-     * @return output
      */
     protected String start(String name, StringManager smClient) {
 
@@ -209,13 +200,11 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
         return stringWriter.toString();
     }
 
-
+    
     /**
      * Stop the host with the specified name.
      *
      * @param name Host name
-     * @param smClient StringManager for the client's locale
-     * @return output
      */
     protected String stop(String name, StringManager smClient) {
 
@@ -227,24 +216,7 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
         return stringWriter.toString();
     }
 
-
-    /**
-     * Persist the current configuration to server.xml.
-     *
-     * @param smClient i18n resources localized for the client
-     * @return output
-     */
-    protected String persist(StringManager smClient) {
-
-        StringWriter stringWriter = new StringWriter();
-        PrintWriter printWriter = new PrintWriter(stringWriter);
-
-        super.persist(printWriter, smClient);
-
-        return stringWriter.toString();
-    }
-
-
+    
     /**
      * Render a HTML list of the currently active Contexts in our virtual host,
      * and memory and server status information.
@@ -252,8 +224,6 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
      * @param request The request
      * @param response The response
      * @param message a message to display
-     * @param smClient StringManager for the client's locale
-     * @throws IOException An IO error occurred
      */
     public void list(HttpServletRequest request,
                      HttpServletResponse response,
@@ -273,8 +243,8 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
         Object[] args = new Object[2];
         args[0] = request.getContextPath();
         args[1] = smClient.getString("htmlHostManagerServlet.title");
-        writer.print(MessageFormat.format(
-                org.apache.catalina.manager.Constants.BODY_HEADER_SECTION, args));
+        writer.print(MessageFormat.format
+                     (Constants.BODY_HEADER_SECTION, args));
 
         // Message Section
         args = new Object[3];
@@ -282,7 +252,7 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
         if (message == null || message.length() == 0) {
             args[1] = "OK";
         } else {
-            args[1] = Escape.htmlElementContent(message);
+            args[1] = RequestUtil.filter(message);
         }
         writer.print(MessageFormat.format(Constants.MESSAGE_SECTION, args));
 
@@ -317,7 +287,8 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
         for (int i = 0; i < children.length; i++)
             hostNames[i] = children[i].getName();
 
-        TreeMap<String,String> sortedHostNamesMap = new TreeMap<>();
+        TreeMap<String,String> sortedHostNamesMap =
+            new TreeMap<String,String>();
 
         for (int i = 0; i < hostNames.length; i++) {
             String displayPath = hostNames[i];
@@ -331,13 +302,16 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
         String hostsRemove =
             smClient.getString("htmlHostManagerServlet.hostsRemove");
 
-        for (Map.Entry<String, String> entry : sortedHostNamesMap.entrySet()) {
+        Iterator<Map.Entry<String,String>> iterator =
+            sortedHostNamesMap.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String,String> entry = iterator.next();
             String hostName = entry.getKey();
             Host host = (Host) engine.findChild(hostName);
 
             if (host != null ) {
                 args = new Object[2];
-                args[0] = Escape.htmlElementContent(hostName);
+                args[0] = RequestUtil.filter(hostName);
                 String[] aliases = host.findAliases();
                 StringBuilder buf = new StringBuilder();
                 if (aliases.length > 0) {
@@ -351,7 +325,7 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
                     buf.append("&nbsp;");
                     args[1] = buf.toString();
                 } else {
-                    args[1] = Escape.htmlElementContent(buf.toString());
+                    args[1] = RequestUtil.filter(buf.toString());
                 }
 
                 writer.print
@@ -378,10 +352,10 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
                 args[3] = hostsRemove;
                 if (host == this.installedHost) {
                     writer.print(MessageFormat.format(
-                            MANAGER_HOST_ROW_BUTTON_SECTION, args));
+                        MANAGER_HOST_ROW_BUTTON_SECTION, args));
                 } else {
                     writer.print(MessageFormat.format(
-                            HOSTS_ROW_BUTTON_SECTION, args));
+                        HOSTS_ROW_BUTTON_SECTION, args));
                 }
             }
         }
@@ -395,7 +369,7 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
         args[4] = smClient.getString("htmlHostManagerServlet.addAliases");
         args[5] = smClient.getString("htmlHostManagerServlet.addAppBase");
         writer.print(MessageFormat.format(ADD_SECTION_START, args));
-
+ 
         args = new Object[3];
         args[0] = smClient.getString("htmlHostManagerServlet.addAutoDeploy");
         args[1] = "autoDeploy";
@@ -429,14 +403,6 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
         args[0] = smClient.getString("htmlHostManagerServlet.addButton");
         writer.print(MessageFormat.format(ADD_SECTION_END, args));
 
-        // Persist Configuration Section
-        args = new Object[4];
-        args[0] = smClient.getString("htmlHostManagerServlet.persistTitle");
-        args[1] = response.encodeURL(request.getContextPath() + "/html/persist");
-        args[2] = smClient.getString("htmlHostManagerServlet.persistAllButton");
-        args[3] = smClient.getString("htmlHostManagerServlet.persistAll");
-        writer.print(MessageFormat.format(PERSIST_SECTION, args));
-
         // Server Header Section
         args = new Object[7];
         args[0] = smClient.getString("htmlHostManagerServlet.serverTitle");
@@ -467,7 +433,7 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
         writer.close();
     }
 
-
+    
     // ------------------------------------------------------ Private Constants
 
     // These HTML sections are broken in relatively small sections, because of
@@ -548,7 +514,7 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
         "  <input type=\"text\" name=\"appBase\" size=\"64\">\n" +
         " </td>\n" +
         "</tr>\n" ;
-
+    
         private static final String ADD_SECTION_BOOLEAN =
         "<tr>\n" +
         " <td class=\"row-right\">\n" +
@@ -558,7 +524,7 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
         "  <input type=\"checkbox\" name=\"{1}\" {2}>\n" +
         " </td>\n" +
         "</tr>\n" ;
-
+        
         private static final String ADD_SECTION_END =
         "<tr>\n" +
         " <td class=\"row-right\">\n" +
@@ -575,21 +541,5 @@ public final class HTMLHostManagerServlet extends HostManagerServlet {
         "</table>\n" +
         "<br>\n" +
         "\n";
-
-        private static final String PERSIST_SECTION =
-                "<table border=\"1\" cellspacing=\"0\" cellpadding=\"3\">\n" +
-                "<tr>\n" +
-                " <td class=\"title\">{0}</td>\n" +
-                "</tr>\n" +
-                "<tr>\n" +
-                " <td class=\"row-left\">\n" +
-                "  <form class=\"inline\" method=\"POST\" action=\"{1}\">" +
-                "   <small><input type=\"submit\" value=\"{2}\"></small>" +
-                "  </form> {3}\n" +
-                " </td>\n" +
-                "</tr>\n" +
-                "</table>\n" +
-                "<br>\n" +
-                "\n";
 
 }

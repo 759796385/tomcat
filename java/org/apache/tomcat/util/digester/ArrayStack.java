@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,14 +38,12 @@ import java.util.EmptyStackException;
  * <p>Unlike <code>Stack</code>, <code>ArrayStack</code> accepts null entries.
  * </p>
  *
- * @param <E> Type of object in this stack
- *
  * @see java.util.Stack
  * @since Digester 1.6 (from Commons Collections 1.0)
  */
 public class ArrayStack<E> extends ArrayList<E> {
 
-    /** Ensure serialization compatibility */
+    /** Ensure serialization compatibility */    
     private static final long serialVersionUID = 2130079159931574599L;
 
     /**
@@ -58,7 +56,7 @@ public class ArrayStack<E> extends ArrayList<E> {
 
     /**
      * Constructs a new empty <code>ArrayStack</code> with an initial size.
-     *
+     * 
      * @param initialSize  the initial size to use
      * @throws IllegalArgumentException  if the specified initial size
      *  is negative
@@ -72,7 +70,7 @@ public class ArrayStack<E> extends ArrayList<E> {
      * <p>
      * This method exists for compatibility with <code>java.util.Stack</code>.
      * New users of this class should use <code>isEmpty</code> instead.
-     *
+     * 
      * @return true if the stack is currently empty
      */
     public boolean empty() {

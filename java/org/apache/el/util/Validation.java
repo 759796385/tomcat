@@ -32,7 +32,7 @@ public class Validation {
         "static", "strictfp", "super", "switch", "synchronized", "this",
         "throw", "throws", "transient", "true", "try", "void", "volatile",
         "while" };
-
+    
     private static final boolean IS_SECURITY_ENABLED =
             (System.getSecurityManager() != null);
 
@@ -57,24 +57,17 @@ public class Validation {
         }
         SKIP_IDENTIFIER_CHECK = Boolean.parseBoolean(skipIdentifierCheckStr);
     }
-
-
+    
+    
     private Validation() {
         // Utility class. Hide default constructor
     }
-
+    
     /**
-     * Test whether a string is a Java identifier. Note that the behaviour of
-     * this method depend on the system property
-     * {@code org.apache.el.parser.SKIP_IDENTIFIER_CHECK}
-     *
-     * @param key The string to test
-     *
-     * @return {@code true} if the provided String should be treated as a Java
-     *         identifier, otherwise false
+     * Test whether the argument is a Java identifier.
      */
     public static boolean isIdentifier(String key) {
-
+        
         if (SKIP_IDENTIFIER_CHECK) {
             return true;
         }
@@ -83,7 +76,7 @@ public class Validation {
         if (key == null || key.length() == 0) {
             return false;
         }
-
+        
         // Check the list of known invalid values
         int i = 0;
         int j = invalidIdentifiers.length;
@@ -111,7 +104,7 @@ public class Validation {
                 return false;
             }
         }
-
+        
         return true;
     }
 }

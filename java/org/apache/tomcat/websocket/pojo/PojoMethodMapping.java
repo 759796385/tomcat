@@ -58,7 +58,7 @@ import org.apache.tomcat.websocket.Util.DecoderMatch;
 public class PojoMethodMapping {
 
     private static final StringManager sm =
-            StringManager.getManager(PojoMethodMapping.class);
+            StringManager.getManager(Constants.PACKAGE_NAME);
 
     private final Method onOpen;
     private final Method onClose;
@@ -66,7 +66,7 @@ public class PojoMethodMapping {
     private final PojoPathParam[] onOpenParams;
     private final PojoPathParam[] onCloseParams;
     private final PojoPathParam[] onErrorParams;
-    private final List<MessageHandlerInfo> onMessage = new ArrayList<>();
+    private final List<MessageHandlerInfo> onMessage = new ArrayList<MessageHandlerInfo>();
     private final String wsPath;
 
 
@@ -169,7 +169,7 @@ public class PojoMethodMapping {
                 error = null;
             }
         }
-        List<MessageHandlerInfo> overriddenOnMessage = new ArrayList<>();
+        List<MessageHandlerInfo> overriddenOnMessage = new ArrayList<MessageHandlerInfo>();
         for (MessageHandlerInfo messageHandler : onMessage) {
             if (messageHandler.m.getDeclaringClass() != clazzPojo
                     && isOverridenWithoutAnnotation(clazzPojoMethods, messageHandler.m, OnMessage.class)) {
@@ -197,9 +197,9 @@ public class PojoMethodMapping {
 
 
     private boolean isMethodOverride(Method method1, Method method2) {
-        return method1.getName().equals(method2.getName())
+        return (method1.getName().equals(method2.getName())
                 && method1.getReturnType().equals(method2.getReturnType())
-                && Arrays.equals(method1.getParameterTypes(), method2.getParameterTypes());
+                && Arrays.equals(method1.getParameterTypes(), method2.getParameterTypes()));
     }
 
 
@@ -264,7 +264,7 @@ public class PojoMethodMapping {
     public Set<MessageHandler> getMessageHandlers(Object pojo,
             Map<String,String> pathParameters, Session session,
             EndpointConfig config) {
-        Set<MessageHandler> result = new HashSet<>();
+        Set<MessageHandler> result = new HashSet<MessageHandler>();
         for (MessageHandlerInfo messageMethod : onMessage) {
             result.addAll(messageMethod.getMessageHandlers(pojo, pathParameters,
                     session, config));
@@ -376,7 +376,7 @@ public class PojoMethodMapping {
         private int indexReader = -1;
         private int indexPrimitive = -1;
         private Class<?> primitiveType = null;
-        private Map<Integer,PojoPathParam> indexPathParams = new HashMap<>();
+        private Map<Integer,PojoPathParam> indexPathParams = new HashMap<Integer,PojoPathParam>();
         private int indexPayload = -1;
         private DecoderMatch decoderMatch = null;
         private long maxMessageSize = -1;
@@ -649,7 +649,7 @@ public class PojoMethodMapping {
                 params[entry.getKey().intValue()] = value;
             }
 
-            Set<MessageHandler> results = new HashSet<>(2);
+            Set<MessageHandler> results = new HashSet<MessageHandler>(2);
             if (indexBoolean == -1) {
                 // Basic
                 if (indexString != -1 || indexPrimitive != -1) {
@@ -722,7 +722,7 @@ public class PojoMethodMapping {
     }
 
 
-    private enum MethodType {
+    private static enum MethodType {
         ON_OPEN,
         ON_CLOSE,
         ON_ERROR

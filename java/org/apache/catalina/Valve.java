@@ -5,23 +5,28 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+
 package org.apache.catalina;
+
 
 import java.io.IOException;
 
 import javax.servlet.ServletException;
 
+import org.apache.catalina.comet.CometEvent;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
+
 
 /**
  * <p>A <b>Valve</b> is a request processing component associated with a
@@ -42,8 +47,15 @@ public interface Valve {
 
     //-------------------------------------------------------------- Properties
 
+
     /**
-     * @return the next Valve in the pipeline containing this Valve, if any.
+     * Return descriptive information about this Valve implementation.
+     */
+    public String getInfo();
+
+
+    /**
+     * Return the next Valve in the pipeline containing this Valve, if any.
      */
     public Valve getNext();
 
@@ -117,6 +129,23 @@ public interface Valve {
     public void invoke(Request request, Response response)
         throws IOException, ServletException;
 
+    
+    /**
+     * Process a Comet event.
+     *
+     * @param request The servlet request to be processed
+     * @param response The servlet response to be created
+     *
+     * @exception IOException if an input/output error occurs, or is thrown
+     *  by a subsequently invoked Valve, Filter, or Servlet
+     * @exception ServletException if a servlet error occurs, or is thrown
+     *  by a subsequently invoked Valve, Filter, or Servlet
+     */
+    public void event(Request request, Response response, CometEvent event)
+        throws IOException, ServletException;
 
+    
     public boolean isAsyncSupported();
+    
+
 }

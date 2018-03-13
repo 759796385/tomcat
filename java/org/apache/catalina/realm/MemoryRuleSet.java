@@ -5,21 +5,25 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+
 package org.apache.catalina.realm;
+
 
 import org.apache.tomcat.util.digester.Digester;
 import org.apache.tomcat.util.digester.Rule;
-import org.apache.tomcat.util.digester.RuleSet;
+import org.apache.tomcat.util.digester.RuleSetBase;
 import org.xml.sax.Attributes;
+
 
 /**
  * <p><strong>RuleSet</strong> for recognizing the users defined in the
@@ -27,25 +31,29 @@ import org.xml.sax.Attributes;
  *
  * @author Craig R. McClanahan
  */
-public class MemoryRuleSet implements RuleSet {
+public class MemoryRuleSet extends RuleSetBase {
 
 
     // ----------------------------------------------------- Instance Variables
 
+
     /**
      * The matching pattern prefix to use for recognizing our elements.
      */
-    protected final String prefix;
+    protected String prefix = null;
 
 
     // ------------------------------------------------------------ Constructor
+
 
     /**
      * Construct an instance of this <code>RuleSet</code> with the default
      * matching pattern prefix.
      */
     public MemoryRuleSet() {
+
         this("tomcat-users/");
+
     }
 
 
@@ -57,7 +65,11 @@ public class MemoryRuleSet implements RuleSet {
      *  trailing slash character)
      */
     public MemoryRuleSet(String prefix) {
+
+        super();
+        this.namespaceURI = null;
         this.prefix = prefix;
+
     }
 
 

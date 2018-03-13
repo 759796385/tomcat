@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,14 +38,14 @@ public class AttributeInfo extends FeatureInfo {
     protected boolean readable = true;
     protected boolean writeable = true;
     protected boolean is = false;
-
+    
     // ------------------------------------------------------------- Properties
 
     /**
-     * @return the display name of this attribute.
+     * The display name of this attribute.
      */
     public String getDisplayName() {
-        return this.displayName;
+        return (this.displayName);
     }
 
     public void setDisplayName(String displayName) {
@@ -53,12 +53,12 @@ public class AttributeInfo extends FeatureInfo {
     }
 
     /**
-     * @return the name of the property getter method, if non-standard.
+     * The name of the property getter method, if non-standard.
      */
     public String getGetMethod() {
-        if(getMethod == null)
+        if(getMethod == null) 
             getMethod = getMethodName(getName(), true, isIs());
-        return this.getMethod;
+        return (this.getMethod);
     }
 
     public void setGetMethod(String getMethod) {
@@ -67,11 +67,9 @@ public class AttributeInfo extends FeatureInfo {
 
     /**
      * Is this a boolean attribute with an "is" getter?
-     * @return <code>true</code> if this is a boolean attribute
-     *  with an "is" getter
      */
     public boolean isIs() {
-        return this.is;
+        return (this.is);
     }
 
     public void setIs(boolean is) {
@@ -81,10 +79,9 @@ public class AttributeInfo extends FeatureInfo {
 
     /**
      * Is this attribute readable by management applications?
-     * @return <code>true</code> if readable
      */
     public boolean isReadable() {
-        return this.readable;
+        return (this.readable);
     }
 
     public void setReadable(boolean readable) {
@@ -93,12 +90,12 @@ public class AttributeInfo extends FeatureInfo {
 
 
     /**
-     * @return the name of the property setter method, if non-standard.
+     * The name of the property setter method, if non-standard.
      */
     public String getSetMethod() {
         if( setMethod == null )
             setMethod = getMethodName(getName(), false, false);
-        return this.setMethod;
+        return (this.setMethod);
     }
 
     public void setSetMethod(String setMethod) {
@@ -107,10 +104,9 @@ public class AttributeInfo extends FeatureInfo {
 
     /**
      * Is this attribute writable by management applications?
-     * @return <code>true</code> if writable
      */
     public boolean isWriteable() {
-        return this.writeable;
+        return (this.writeable);
     }
 
     public void setWriteable(boolean writeable) {
@@ -123,7 +119,6 @@ public class AttributeInfo extends FeatureInfo {
     /**
      * Create and return a <code>ModelMBeanAttributeInfo</code> object that
      * corresponds to the attribute described by this instance.
-     * @return the attribute info
      */
     MBeanAttributeInfo createAttributeInfo() {
         // Return our cached information (if any)
@@ -144,9 +139,9 @@ public class AttributeInfo extends FeatureInfo {
      * @param name Name of the property itself
      * @param getter Do we want a get method (versus a set method)?
      * @param is If returning a getter, do we want the "is" form?
-     * @return the method name
      */
     private String getMethodName(String name, boolean getter, boolean is) {
+
         StringBuilder sb = new StringBuilder();
         if (getter) {
             if (is)
@@ -157,7 +152,8 @@ public class AttributeInfo extends FeatureInfo {
             sb.append("set");
         sb.append(Character.toUpperCase(name.charAt(0)));
         sb.append(name.substring(1));
-        return sb.toString();
+        return (sb.toString());
+
     }
 
 

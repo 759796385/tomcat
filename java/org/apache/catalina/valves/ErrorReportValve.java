@@ -16,14 +16,9 @@
  */
 package org.apache.catalina.valves;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.Writer;
 import java.util.Scanner;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
@@ -31,15 +26,11 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
-import org.apache.catalina.util.ErrorPageSupport;
-import org.apache.catalina.util.IOTools;
+import org.apache.catalina.util.RequestUtil;
 import org.apache.catalina.util.ServerInfo;
-import org.apache.catalina.util.TomcatCSS;
 import org.apache.coyote.ActionCode;
 import org.apache.tomcat.util.ExceptionUtils;
-import org.apache.tomcat.util.descriptor.web.ErrorPage;
 import org.apache.tomcat.util.res.StringManager;
-import org.apache.tomcat.util.security.Escape;
 
 /**
  * <p>Implementation of a Valve that outputs HTML error pages.</p>
@@ -61,17 +52,37 @@ public class ErrorReportValve extends ValveBase {
 
     private boolean showServerInfo = true;
 
-    private final ErrorPageSupport errorPageSupport = new ErrorPageSupport();
-
-
     //------------------------------------------------------ Constructor
-
     public ErrorReportValve() {
         super(true);
     }
 
+    // ----------------------------------------------------- Instance Variables
+
+
+    /**
+     * The descriptive information related to this implementation.
+     */
+    private static final String info =
+        "org.apache.catalina.valves.ErrorReportValve/1.0";
+
+
+    // ------------------------------------------------------------- Properties
+
+
+    /**
+     * Return descriptive information about this Valve implementation.
+     */
+    @Override
+    public String getInfo() {
+
+        return (info);
+
+    }
+
 
     // --------------------------------------------------------- Public Methods
+
 
     /**
      * Invoke the next Valve in the sequence. When the invoke returns, check
@@ -161,42 +172,12 @@ public class ErrorReportValve extends ValveBase {
         if (statusCode < 400 || response.getContentWritten() > 0 || !response.setErrorReported()) {
             return;
         }
-
-        // If an error has occurred that prevents further I/O, don't waste time
-        // producing an error report that will never be read
-        AtomicBoolean result = new AtomicBoolean(false);
-        response.getCoyoteResponse().action(ActionCode.IS_IO_ALLOWED, result);
-        if (!result.get()) {
-            return;
-        }
-
-        ErrorPage errorPage = null;
-        if (throwable != null) {
-            errorPage = errorPageSupport.find(throwable);
-        }
-        if (errorPage == null) {
-            errorPage = errorPageSupport.find(statusCode);
-        }
-        if (errorPage == null) {
-            // Default error page
-            errorPage = errorPageSupport.find(0);
-        }
-
-
-        if (errorPage != null) {
-            if (sendErrorPage(errorPage.getLocation(), response)) {
-                // If the page was sent successfully, don't write the standard
-                // error page.
-                return;
-            }
-        }
-
-        String message = Escape.htmlElementContent(response.getMessage());
+        String message = RequestUtil.filter(response.getMessage());
         if (message == null) {
             if (throwable != null) {
                 String exceptionMessage = throwable.getMessage();
                 if (exceptionMessage != null && exceptionMessage.length() > 0) {
-                    message = Escape.htmlElementContent((new Scanner(exceptionMessage)).nextLine());
+                    message = RequestUtil.filter((new Scanner(exceptionMessage)).nextLine());
                 }
             }
             if (message == null) {
@@ -204,73 +185,73 @@ public class ErrorReportValve extends ValveBase {
             }
         }
 
-        // Do nothing if there is no reason phrase for the specified status code and
+        // Do nothing if there is no report for the specified status code and
         // no error message provided
-        String reason = null;
-        String description = null;
+        String report = null;
         StringManager smClient = StringManager.getManager(
                 Constants.Package, request.getLocales());
         response.setLocale(smClient.getLocale());
         try {
-            reason = smClient.getString("http." + statusCode + ".reason");
-            description = smClient.getString("http." + statusCode + ".desc");
+            report = smClient.getString("http." + statusCode);
         } catch (Throwable t) {
             ExceptionUtils.handleThrowable(t);
         }
-        if (reason == null || description == null) {
-            if (message.isEmpty()) {
+        if (report == null) {
+            if (message.length() == 0) {
                 return;
             } else {
-                reason = smClient.getString("errorReportValve.unknownReason");
-                description = smClient.getString("errorReportValve.noDescription");
+                report = smClient.getString("errorReportValve.noDescription");
             }
         }
 
         StringBuilder sb = new StringBuilder();
 
-        sb.append("<!doctype html><html lang=\"");
-        sb.append(smClient.getLocale().getLanguage()).append("\">");
-        sb.append("<head>");
-        sb.append("<title>");
-        sb.append(smClient.getString("errorReportValve.statusHeader",
-                String.valueOf(statusCode), reason));
-        sb.append("</title>");
-        sb.append("<style type=\"text/css\">");
-        sb.append(TomcatCSS.TOMCAT_CSS);
-        sb.append("</style>");
+        sb.append("<html><head>");
+        if(showServerInfo || showReport){
+            sb.append("<title>");
+            if(showServerInfo) {
+                sb.append(ServerInfo.getServerInfo()).append(" - ");
+            }
+            sb.append(smClient.getString("errorReportValve.errorReport"));
+            sb.append("</title>");
+            sb.append("<style><!--");
+            sb.append(org.apache.catalina.util.TomcatCSS.TOMCAT_CSS);
+            sb.append("--></style> ");
+        } else {
+            sb.append("<title>");
+            sb.append(smClient.getString("errorReportValve.errorReport"));
+            sb.append("</title>");
+        }
         sb.append("</head><body>");
         sb.append("<h1>");
         sb.append(smClient.getString("errorReportValve.statusHeader",
-                String.valueOf(statusCode), reason)).append("</h1>");
-        if (isShowReport()) {
-            sb.append("<hr class=\"line\" />");
-            sb.append("<p><b>");
-            sb.append(smClient.getString("errorReportValve.type"));
-            sb.append("</b> ");
+                String.valueOf(statusCode), message)).append("</h1>");
+        if (showReport) {
+            sb.append("<HR size=\"1\" noshade=\"noshade\">");
+            sb.append("<p><b>type</b> ");
             if (throwable != null) {
                 sb.append(smClient.getString("errorReportValve.exceptionReport"));
             } else {
                 sb.append(smClient.getString("errorReportValve.statusReport"));
             }
             sb.append("</p>");
-            if (!message.isEmpty()) {
-                sb.append("<p><b>");
-                sb.append(smClient.getString("errorReportValve.message"));
-                sb.append("</b> ");
-                sb.append(message).append("</p>");
-            }
+            sb.append("<p><b>");
+            sb.append(smClient.getString("errorReportValve.message"));
+            sb.append("</b> <u>");
+            sb.append(message).append("</u></p>");
             sb.append("<p><b>");
             sb.append(smClient.getString("errorReportValve.description"));
-            sb.append("</b> ");
-            sb.append(description);
-            sb.append("</p>");
+            sb.append("</b> <u>");
+            sb.append(report);
+            sb.append("</u></p>");
             if (throwable != null) {
+
                 String stackTrace = getPartialServletStackTrace(throwable);
                 sb.append("<p><b>");
                 sb.append(smClient.getString("errorReportValve.exception"));
-                sb.append("</b></p><pre>");
-                sb.append(Escape.htmlElementContent(stackTrace));
-                sb.append("</pre>");
+                sb.append("</b> <pre>");
+                sb.append(RequestUtil.filter(stackTrace));
+                sb.append("</pre></p>");
 
                 int loops = 0;
                 Throwable rootCause = throwable.getCause();
@@ -278,9 +259,9 @@ public class ErrorReportValve extends ValveBase {
                     stackTrace = getPartialServletStackTrace(rootCause);
                     sb.append("<p><b>");
                     sb.append(smClient.getString("errorReportValve.rootCause"));
-                    sb.append("</b></p><pre>");
-                    sb.append(Escape.htmlElementContent(stackTrace));
-                    sb.append("</pre>");
+                    sb.append("</b> <pre>");
+                    sb.append(RequestUtil.filter(stackTrace));
+                    sb.append("</pre></p>");
                     // In case root cause is somehow heavily nested
                     rootCause = rootCause.getCause();
                     loops++;
@@ -288,14 +269,15 @@ public class ErrorReportValve extends ValveBase {
 
                 sb.append("<p><b>");
                 sb.append(smClient.getString("errorReportValve.note"));
-                sb.append("</b> ");
-                sb.append(smClient.getString("errorReportValve.rootCauseInLogs"));
-                sb.append("</p>");
+                sb.append("</b> <u>");
+                sb.append(smClient.getString("errorReportValve.rootCauseInLogs",
+                        showServerInfo?ServerInfo.getServerInfo():""));
+                sb.append("</u></p>");
 
             }
-            sb.append("<hr class=\"line\" />");
+            sb.append("<HR size=\"1\" noshade=\"noshade\">");
         }
-        if (isShowServerInfo()) {
+        if (showServerInfo) {
             sb.append("<h3>").append(ServerInfo.getServerInfo()).append("</h3>");
         }
         sb.append("</body></html>");
@@ -329,12 +311,10 @@ public class ErrorReportValve extends ValveBase {
     /**
      * Print out a partial servlet stack trace (truncating at the last
      * occurrence of javax.servlet.).
-     * @param t The stack trace to process
-     * @return the stack trace relative to the application layer
      */
     protected String getPartialServletStackTrace(Throwable t) {
         StringBuilder trace = new StringBuilder();
-        trace.append(t.toString()).append(System.lineSeparator());
+        trace.append(t.toString()).append('\n');
         StackTraceElement[] elements = t.getStackTrace();
         int pos = elements.length;
         for (int i = elements.length - 1; i >= 0; i--) {
@@ -348,47 +328,16 @@ public class ErrorReportValve extends ValveBase {
         for (int i = 0; i < pos; i++) {
             if (!(elements[i].getClassName().startsWith
                   ("org.apache.catalina.core."))) {
-                trace.append('\t').append(elements[i].toString()).append(System.lineSeparator());
+                trace.append('\t').append(elements[i].toString()).append('\n');
             }
         }
         return trace.toString();
     }
 
-
-    private boolean sendErrorPage(String location, Response response) {
-        File file = new File(location);
-        if (!file.isAbsolute()) {
-            file = new File(getContainer().getCatalinaBase(), location);
-        }
-        if (!file.isFile() || !file.canRead()) {
-            getContainer().getLogger().warn(
-                    sm.getString("errorReportValve.errorPageNotFound", location));
-            return false;
-        }
-
-        // Hard coded for now. Consider making this optional. At Valve level or
-        // page level?
-        response.setContentType("text/html");
-        response.setCharacterEncoding("UTF-8");
-
-        try {
-            OutputStream os = response.getOutputStream();
-            InputStream is = new FileInputStream(file);
-            IOTools.flow(is, os);
-        } catch (IOException e) {
-            getContainer().getLogger().warn(
-                    sm.getString("errorReportValve.errorPageIOException", location), e);
-            return false;
-        }
-
-        return true;
-    }
-
-
     /**
      * Enables/Disables full error reports
      *
-     * @param showReport <code>true</code> to show full error data
+     * @param showReport
      */
     public void setShowReport(boolean showReport) {
         this.showReport = showReport;
@@ -401,7 +350,7 @@ public class ErrorReportValve extends ValveBase {
     /**
      * Enables/Disables server info on error pages
      *
-     * @param showServerInfo <code>true</code> to show server info
+     * @param showServerInfo
      */
     public void setShowServerInfo(boolean showServerInfo) {
         this.showServerInfo = showServerInfo;
@@ -409,49 +358,5 @@ public class ErrorReportValve extends ValveBase {
 
     public boolean isShowServerInfo() {
         return showServerInfo;
-    }
-
-
-    public boolean setProperty(String name, String value) {
-        if (name.startsWith("errorCode.")) {
-            int code = Integer.parseInt(name.substring(10));
-            ErrorPage ep = new ErrorPage();
-            ep.setErrorCode(code);
-            ep.setLocation(value);
-            errorPageSupport.add(ep);
-            return true;
-        } else if (name.startsWith("exceptionType.")) {
-            String className = name.substring(14);
-            ErrorPage ep = new ErrorPage();
-            ep.setExceptionType(className);
-            ep.setLocation(value);
-            errorPageSupport.add(ep);
-            return true;
-        }
-        return false;
-    }
-
-    public String getProperty(String name) {
-        String result;
-        if (name.startsWith("errorCode.")) {
-            int code = Integer.parseInt(name.substring(10));
-            ErrorPage ep = errorPageSupport.find(code);
-            if (ep == null) {
-                result = null;
-            } else {
-                result = ep.getLocation();
-            }
-        } else if (name.startsWith("exceptionType.")) {
-            String className = name.substring(14);
-            ErrorPage ep = errorPageSupport.find(className);
-            if (ep == null) {
-                result = null;
-            } else {
-                result = ep.getLocation();
-            }
-        } else {
-            result = null;
-        }
-        return result;
     }
 }

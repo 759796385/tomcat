@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -39,7 +39,6 @@ public final class StandardWrapperFacade
 
     /**
      * Create a new facade around a StandardWrapper.
-     * @param config the associated wrapper
      */
     public StandardWrapperFacade(StandardWrapper config) {
 
@@ -55,7 +54,7 @@ public final class StandardWrapperFacade
     /**
      * Wrapped config.
      */
-    private final ServletConfig config;
+    private ServletConfig config = null;
 
 
     /**
@@ -77,11 +76,10 @@ public final class StandardWrapperFacade
     public ServletContext getServletContext() {
         if (context == null) {
             context = config.getServletContext();
-            if (context instanceof ApplicationContext) {
+            if ((context != null) && (context instanceof ApplicationContext))
                 context = ((ApplicationContext) context).getFacade();
-            }
         }
-        return context;
+        return (context);
     }
 
 

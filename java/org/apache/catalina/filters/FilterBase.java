@@ -32,7 +32,7 @@ import org.apache.tomcat.util.res.StringManager;
  */
 public abstract class FilterBase implements Filter {
 
-    protected static final StringManager sm = StringManager.getManager(FilterBase.class);
+    protected static final StringManager sm = StringManager.getManager(Constants.Package);
 
     protected abstract Log getLogger();
 
@@ -65,6 +65,11 @@ public abstract class FilterBase implements Filter {
                 }
             }
         }
+    }
+
+    @Override
+    public void destroy() {
+        // NOOP
     }
 
     /**

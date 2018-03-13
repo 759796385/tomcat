@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,45 +27,43 @@ import org.apache.catalina.tribes.MessageListener;
 import org.apache.catalina.tribes.UniqueId;
 import org.apache.catalina.tribes.membership.McastService;
 import org.apache.catalina.tribes.membership.StaticMember;
+import org.apache.catalina.tribes.transport.ReceiverBase;
 import org.apache.catalina.tribes.transport.ReplicationTransmitter;
 import org.apache.catalina.tribes.transport.SenderState;
 import org.apache.catalina.tribes.transport.nio.NioReceiver;
 import org.apache.catalina.tribes.util.Arrays;
 import org.apache.catalina.tribes.util.Logs;
-import org.apache.catalina.tribes.util.StringManager;
 
 
 /**
  * The channel coordinator object coordinates the membership service,
  * the sender and the receiver.
  * This is the last interceptor in the chain.
+ * @author Filip Hanik
  */
 public class ChannelCoordinator extends ChannelInterceptorBase implements MessageListener {
-    protected static final StringManager sm = StringManager.getManager(ChannelCoordinator.class);
-    private ChannelReceiver clusterReceiver;
-    private ChannelSender clusterSender;
-    private MembershipService membershipService;
-
+    private ChannelReceiver clusterReceiver = new NioReceiver();
+    private ChannelSender clusterSender = new ReplicationTransmitter();
+    private MembershipService membershipService = new McastService();
+    
     private int startLevel = 0;
 
     public ChannelCoordinator() {
-        this(new NioReceiver(), new ReplicationTransmitter(),
-                new McastService());
-    }
-
-    public ChannelCoordinator(ChannelReceiver receiver,
-                              ChannelSender sender,
-                              MembershipService service) {
-
+        // Override default
         this.optionFlag = Channel.SEND_OPTIONS_BYTE_MESSAGE |
                 Channel.SEND_OPTIONS_USE_ACK |
                 Channel.SEND_OPTIONS_SYNCHRONIZED_ACK;
-
+    }
+    
+    public ChannelCoordinator(ChannelReceiver receiver,
+                              ChannelSender sender,
+                              MembershipService service) {
+        this();
         this.setClusterReceiver(receiver);
         this.setClusterSender(sender);
         this.setMembershipService(service);
     }
-
+    
     /**
      * Send a message to one or more members in the cluster
      * @param destination Member[] - the destinations, null or zero length means all
@@ -73,8 +71,7 @@ public class ChannelCoordinator extends ChannelInterceptorBase implements Messag
      * @param payload TBA
      */
     @Override
-    public void sendMessage(Member[] destination, ChannelMessage msg, InterceptorPayload payload)
-            throws ChannelException {
+    public void sendMessage(Member[] destination, ChannelMessage msg, InterceptorPayload payload) throws ChannelException {
         if ( destination == null ) destination = membershipService.getMembers();
         if ((msg.getOptions()&Channel.SEND_OPTIONS_MULTICAST) == Channel.SEND_OPTIONS_MULTICAST) {
             membershipService.broadcast(msg);
@@ -82,12 +79,10 @@ public class ChannelCoordinator extends ChannelInterceptorBase implements Messag
             clusterSender.sendMessage(msg,destination);
         }
         if ( Logs.MESSAGES.isTraceEnabled() ) {
-            Logs.MESSAGES.trace("ChannelCoordinator - Sent msg:" + new UniqueId(msg.getUniqueId()) +
-                    " at " + new java.sql.Timestamp(System.currentTimeMillis()) + " to " +
-                    Arrays.toNameString(destination));
+            Logs.MESSAGES.trace("ChannelCoordinator - Sent msg:" + new UniqueId(msg.getUniqueId()) + " at " +new java.sql.Timestamp(System.currentTimeMillis())+ " to "+Arrays.toNameString(destination));
         }
     }
-
+    
 
     /**
      * Starts up the channel. This can be called multiple times for individual services to start
@@ -119,7 +114,7 @@ public class ChannelCoordinator extends ChannelInterceptorBase implements Messag
     @Override
     public void stop(int svc) throws ChannelException {
         this.internalStop(svc);
-    }
+    }    
 
 
     /**
@@ -141,17 +136,16 @@ public class ChannelCoordinator extends ChannelInterceptorBase implements Messag
 
             if (startLevel == Channel.DEFAULT) return; //we have already started up all components
             if (svc == 0 ) return;//nothing to start
-
-            if (svc == (svc & startLevel)) {
-                throw new ChannelException(sm.getString("channelCoordinator.alreadyStarted",
-                        Integer.toString(svc)));
-            }
+            
+            if (svc == (svc & startLevel)) throw new ChannelException("Channel already started for level:"+svc);
 
             //must start the receiver first so that we can coordinate the port it
             //listens to with the local membership settings
             if ( Channel.SND_RX_SEQ==(svc & Channel.SND_RX_SEQ) ) {
                 clusterReceiver.setMessageListener(this);
-                clusterReceiver.setChannel(getChannel());
+                if (clusterReceiver instanceof ReceiverBase) {
+                    ((ReceiverBase)clusterReceiver).setChannel(getChannel());
+                }
                 clusterReceiver.start();
                 //synchronize, big time FIXME
                 Member localMember = getChannel().getLocalMember(false);
@@ -167,32 +161,37 @@ public class ChannelCoordinator extends ChannelInterceptorBase implements Messag
                             getClusterReceiver().getPort(),
                             getClusterReceiver().getSecurePort(),
                             getClusterReceiver().getUdpPort());
+                   
                 }
                 valid = true;
             }
             if ( Channel.SND_TX_SEQ==(svc & Channel.SND_TX_SEQ) ) {
-                clusterSender.setChannel(getChannel());
-                clusterSender.start();
+                if (clusterSender instanceof ReplicationTransmitter) {
+                    ((ReplicationTransmitter)clusterSender).setChannel(getChannel());
+                }
                 valid = true;
+                clusterSender.start();
             }
-
+            
             if ( Channel.MBR_RX_SEQ==(svc & Channel.MBR_RX_SEQ) ) {
                 membershipService.setMembershipListener(this);
-                membershipService.setChannel(getChannel());
                 if (membershipService instanceof McastService) {
                     ((McastService)membershipService).setMessageListener(this);
+                    ((McastService)membershipService).setChannel(getChannel());
                 }
                 membershipService.start(MembershipService.MBR_RX);
                 valid = true;
             }
             if ( Channel.MBR_TX_SEQ==(svc & Channel.MBR_TX_SEQ) ) {
-                membershipService.setChannel(getChannel());
+                if (membershipService instanceof McastService) {
+                    ((McastService)membershipService).setChannel(getChannel());
+                }
                 membershipService.start(MembershipService.MBR_TX);
                 valid = true;
             }
-
-            if (!valid) {
-                throw new IllegalArgumentException(sm.getString("channelCoordinator.invalid.startLevel"));
+            
+            if ( !valid) {
+                throw new IllegalArgumentException("Invalid start level, valid levels are:SND_RX_SEQ,SND_TX_SEQ,MBR_TX_SEQ,MBR_RX_SEQ");
             }
             startLevel = (startLevel | svc);
         }catch ( ChannelException cx ) {
@@ -236,49 +235,44 @@ public class ChannelCoordinator extends ChannelInterceptorBase implements Messag
                 membershipService.stop(MembershipService.MBR_RX);
                 membershipService.setMembershipListener(null);
                 valid = true;
-
+                
             }
             if ( Channel.MBR_TX_SEQ==(svc & Channel.MBR_TX_SEQ) ) {
                 valid = true;
                 membershipService.stop(MembershipService.MBR_TX);
-            }
+            }            
             if ( !valid) {
-                throw new IllegalArgumentException(sm.getString("channelCoordinator.invalid.startLevel"));
+                throw new IllegalArgumentException("Invalid start level, valid levels are:SND_RX_SEQ,SND_TX_SEQ,MBR_TX_SEQ,MBR_RX_SEQ");
             }
 
             startLevel = (startLevel & (~svc));
             setChannel(null);
-        } catch (Exception x) {
+        }catch ( Exception x ) {
             throw new ChannelException(x);
+        } finally {
+            
         }
-    }
 
+    }
+    
     @Override
     public void memberAdded(Member member){
         SenderState.getSenderState(member);
         super.memberAdded(member);
     }
-
+    
     @Override
     public void memberDisappeared(Member member){
         SenderState.removeSenderState(member);
         super.memberDisappeared(member);
     }
-
+    
     @Override
     public void messageReceived(ChannelMessage msg) {
         if ( Logs.MESSAGES.isTraceEnabled() ) {
-            Logs.MESSAGES.trace("ChannelCoordinator - Received msg:" +
-                    new UniqueId(msg.getUniqueId()) + " at " +
-                    new java.sql.Timestamp(System.currentTimeMillis()) + " from " +
-                    msg.getAddress().getName());
+            Logs.MESSAGES.trace("ChannelCoordinator - Received msg:" + new UniqueId(msg.getUniqueId()) + " at " +new java.sql.Timestamp(System.currentTimeMillis())+ " from "+msg.getAddress().getName());
         }
         super.messageReceived(msg);
-    }
-
-    @Override
-    public boolean accept(ChannelMessage msg) {
-        return true;
     }
 
     public ChannelReceiver getClusterReceiver() {
@@ -311,13 +305,13 @@ public class ChannelCoordinator extends ChannelInterceptorBase implements Messag
         this.membershipService = membershipService;
         this.membershipService.setMembershipListener(this);
     }
-
+    
     @Override
     public void heartbeat() {
         if ( clusterSender!=null ) clusterSender.heartbeat();
         super.heartbeat();
     }
-
+    
     /**
      * has members
      */
@@ -336,7 +330,7 @@ public class ChannelCoordinator extends ChannelInterceptorBase implements Messag
     }
 
     /**
-     *
+     * 
      * @param mbr Member
      * @return Member
      */
@@ -356,5 +350,5 @@ public class ChannelCoordinator extends ChannelInterceptorBase implements Messag
         return this.getMembershipService().getLocalMember(incAlive);
     }
 
-
+   
 }

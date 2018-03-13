@@ -43,7 +43,7 @@ public abstract class CsrfPreventionFilterBase extends FilterBase {
     }
 
     /**
-     * @return response status code that is used to reject denied request.
+     * Return response status code that is used to reject denied request.
      */
     public int getDenyStatus() {
         return denyStatus;
@@ -78,8 +78,16 @@ public abstract class CsrfPreventionFilterBase extends FilterBase {
 
         try {
             Class<?> clazz = Class.forName(randomClass);
-            randomSource = (Random) clazz.getConstructor().newInstance();
-        } catch (ReflectiveOperationException e) {
+            randomSource = (Random) clazz.newInstance();
+        } catch (ClassNotFoundException e) {
+            ServletException se = new ServletException(sm.getString(
+                    "csrfPrevention.invalidRandomClass", randomClass), e);
+            throw se;
+        } catch (InstantiationException e) {
+            ServletException se = new ServletException(sm.getString(
+                    "csrfPrevention.invalidRandomClass", randomClass), e);
+            throw se;
+        } catch (IllegalAccessException e) {
             ServletException se = new ServletException(sm.getString(
                     "csrfPrevention.invalidRandomClass", randomClass), e);
             throw se;
@@ -95,8 +103,6 @@ public abstract class CsrfPreventionFilterBase extends FilterBase {
      * Generate a once time token (nonce) for authenticating subsequent
      * requests. The nonce generation is a simplified version of
      * ManagerBase.generateSessionId().
-     *
-     * @return the generated nonce
      */
     protected String generateNonce() {
         byte random[] = new byte[16];

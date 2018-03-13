@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,6 +26,10 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import org.apache.catalina.comet.CometEvent;
+import org.apache.catalina.comet.CometFilter;
+import org.apache.catalina.comet.CometFilterChain;
 
 /**
  * Implementation of a Filter that performs filtering based on comparing the
@@ -52,7 +56,7 @@ import javax.servlet.http.HttpServletResponse;
  * <li>The request will be rejected with a "Forbidden" HTTP response.</li>
  * </ul>
  */
-public abstract class RequestFilter extends FilterBase {
+public abstract class RequestFilter extends FilterBase implements CometFilter {
 
 
     // ----------------------------------------------------- Instance Variables
@@ -66,7 +70,7 @@ public abstract class RequestFilter extends FilterBase {
      * The regular expression used to test for denied requests.
      */
     protected Pattern deny = null;
-
+    
     /**
      * The HTTP response status code that is used when rejecting denied
      * request. It is 403 by default, but may be changed to be 404.
@@ -83,7 +87,7 @@ public abstract class RequestFilter extends FilterBase {
 
 
     /**
-     * @return the regular expression used to test for allowed requests for this
+     * Return the regular expression used to test for allowed requests for this
      * Filter, if any; otherwise, return <code>null</code>.
      */
     public String getAllow() {
@@ -110,7 +114,7 @@ public abstract class RequestFilter extends FilterBase {
 
 
     /**
-     * @return the regular expression used to test for denied requests for this
+     * Return the regular expression used to test for denied requests for this
      * Filter, if any; otherwise, return <code>null</code>.
      */
     public String getDeny() {
@@ -137,7 +141,7 @@ public abstract class RequestFilter extends FilterBase {
 
 
     /**
-     * @return response status code that is used to reject denied request.
+     * Return response status code that is used to reject denied request.
      */
     public int getDenyStatus() {
         return denyStatus;
@@ -146,8 +150,6 @@ public abstract class RequestFilter extends FilterBase {
 
     /**
      * Set response status code that is used to reject denied request.
-     *
-     * @param denyStatus The status code for deny
      */
     public void setDenyStatus(int denyStatus) {
         this.denyStatus = denyStatus;
@@ -175,7 +177,7 @@ public abstract class RequestFilter extends FilterBase {
             ServletResponse response, FilterChain chain) throws IOException,
             ServletException;
 
-
+      
     // ------------------------------------------------------ Protected Methods
 
 
@@ -192,7 +194,6 @@ public abstract class RequestFilter extends FilterBase {
      * @param property The request property on which to filter
      * @param request The servlet request to be processed
      * @param response The servlet response to be processed
-     * @param chain The filter chain
      *
      * @exception IOException if an input/output error occurs
      * @exception ServletException if a servlet error occurs
@@ -218,8 +219,30 @@ public abstract class RequestFilter extends FilterBase {
 
 
     /**
+     * Perform the filtering that has been configured for this Filter, matching
+     * against the specified request property.
+     * 
+     * @param property  The property to check against the allow/deny rules
+     * @param event     The comet event to be filtered
+     * @param chain     The comet filter chain
+     * @exception IOException if an input/output error occurs
+     * @exception ServletException if a servlet error occurs
+     */
+    protected void processCometEvent(String property, CometEvent event,
+            CometFilterChain chain) throws IOException, ServletException {
+        HttpServletResponse response = event.getHttpServletResponse();
+        
+        if (isAllowed(property)) {
+            chain.doFilterEvent(event);
+        } else {
+            response.sendError(denyStatus);
+            event.close();
+        }
+    }
+
+    /**
      * Process the allow and deny rules for the provided property.
-     *
+     * 
      * @param property  The property to test against the allow and deny lists
      * @return          <code>true</code> if this request should be allowed,
      *                  <code>false</code> otherwise
@@ -228,7 +251,7 @@ public abstract class RequestFilter extends FilterBase {
         if (deny != null && deny.matcher(property).matches()) {
             return false;
         }
-
+     
         // Check the allow patterns, if any
         if (allow != null && allow.matcher(property).matches()) {
             return true;

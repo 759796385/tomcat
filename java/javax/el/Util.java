@@ -31,14 +31,12 @@ import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 class Util {
-
-    private static final Class<?>[] EMPTY_CLASS_ARRAY = new Class<?>[0];
-    private static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
 
     /**
      * Checks whether the supplied Throwable is one that needs to be
@@ -76,13 +74,15 @@ class Util {
             }
             return template;
         } catch (MissingResourceException e) {
-            return "Missing Resource: '" + name + "' for Locale " + locale.getDisplayName();
+            return "Missing Resource: '" + name + "' for Locale "
+                    + locale.getDisplayName();
         }
     }
 
 
     private static final CacheValue nullTcclFactory = new CacheValue();
-    private static final Map<CacheKey, CacheValue> factoryCache = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<CacheKey, CacheValue> factoryCache =
+            new ConcurrentHashMap<CacheKey, CacheValue>();
 
     /**
      * Provides a per class loader cache of ExpressionFactory instances without
@@ -118,8 +118,8 @@ class Util {
 
         if (factory == null) {
             final Lock writeLock = cacheValue.getLock().writeLock();
-            writeLock.lock();
             try {
+                writeLock.lock();
                 factory = cacheValue.getExpressionFactory();
                 if (factory == null) {
                     factory = ExpressionFactory.newInstance();
@@ -145,7 +145,7 @@ class Util {
 
         public CacheKey(ClassLoader key) {
             hash = key.hashCode();
-            ref = new WeakReference<>(key);
+            ref = new WeakReference<ClassLoader>(key);
         }
 
         @Override
@@ -185,7 +185,7 @@ class Util {
         }
 
         public void setExpressionFactory(ExpressionFactory factory) {
-            ref = new WeakReference<>(factory);
+            ref = new WeakReference<ExpressionFactory>(factory);
         }
     }
 
@@ -211,8 +211,12 @@ class Util {
 
         List<Wrapper> wrappers = Wrapper.wrap(methods, methodName);
 
-        Wrapper result = findWrapper(clazz, wrappers, methodName, paramTypes, paramValues);
+        Wrapper result = findWrapper(
+                clazz, wrappers, methodName, paramTypes, paramValues);
 
+        if (result == null) {
+            return null;
+        }
         return getMethod(clazz, (Method) result.unWrap());
     }
 
@@ -224,9 +228,14 @@ class Util {
     private static Wrapper findWrapper(Class<?> clazz, List<Wrapper> wrappers,
             String name, Class<?>[] paramTypes, Object[] paramValues) {
 
-        Map<Wrapper,MatchResult> candidates = new HashMap<>();
+        Map<Wrapper,MatchResult> candidates = new HashMap<Wrapper,MatchResult>();
 
-        int paramCount = paramTypes.length;
+        int paramCount;
+        if (paramTypes == null) {
+            paramCount = 0;
+        } else {
+            paramCount = paramTypes.length;
+        }
 
         for (Wrapper w : wrappers) {
             Class<?>[] mParamTypes = w.getParameterTypes();
@@ -238,27 +247,9 @@ class Util {
             }
 
             // Check the number of parameters
-            // Multiple tests to improve readability
-            if (!w.isVarArgs() && paramCount != mParamCount) {
+            if (!(paramCount == mParamCount ||
+                    (w.isVarArgs() && paramCount >= mParamCount))) {
                 // Method has wrong number of parameters
-                continue;
-            }
-            if (w.isVarArgs() && paramCount < mParamCount -1) {
-                // Method has wrong number of parameters
-                continue;
-            }
-            if (w.isVarArgs() && paramCount == mParamCount && paramValues != null &&
-                    paramValues.length > paramCount && !paramTypes[mParamCount -1].isArray()) {
-                // Method arguments don't match
-                continue;
-            }
-            if (w.isVarArgs() && paramCount > mParamCount && paramValues != null &&
-                    paramValues.length != paramCount) {
-                // Might match a different varargs method
-                continue;
-            }
-            if (!w.isVarArgs() && paramValues != null && paramCount != paramValues.length) {
-                // Might match a different varargs method
                 continue;
             }
 
@@ -269,12 +260,9 @@ class Util {
             boolean noMatch = false;
             for (int i = 0; i < mParamCount; i++) {
                 // Can't be null
-                if (w.isVarArgs() && i == (mParamCount - 1)) {
-                    if (i == paramCount || (paramValues != null && paramValues.length == i)) {
-                        // Nothing is passed as varargs
-                        assignableMatch++;
-                        break;
-                    }
+                if (mParamTypes[i].equals(paramTypes[i])) {
+                    exactMatch++;
+                } else if (i == (mParamCount - 1) && w.isVarArgs()) {
                     Class<?> varType = mParamTypes[i].getComponentType();
                     for (int j = i; j < paramCount; j++) {
                         if (isAssignableFrom(paramTypes[j], varType)) {
@@ -296,22 +284,18 @@ class Util {
                         // lead to a varArgs method matching when the result
                         // should be ambiguous
                     }
+                } else if (isAssignableFrom(paramTypes[i], mParamTypes[i])) {
+                    assignableMatch++;
                 } else {
-                    if (mParamTypes[i].equals(paramTypes[i])) {
-                        exactMatch++;
-                    } else if (paramTypes[i] != null && isAssignableFrom(paramTypes[i], mParamTypes[i])) {
-                        assignableMatch++;
+                    if (paramValues == null) {
+                        noMatch = true;
+                        break;
                     } else {
-                        if (paramValues == null) {
+                        if (isCoercibleFrom(paramValues[i], mParamTypes[i])) {
+                            coercibleMatch++;
+                        } else {
                             noMatch = true;
                             break;
-                        } else {
-                            if (isCoercibleFrom(paramValues[i], mParamTypes[i])) {
-                                coercibleMatch++;
-                            } else {
-                                noMatch = true;
-                                break;
-                            }
                         }
                     }
                 }
@@ -517,7 +501,7 @@ class Util {
 
     private static Class<?>[] getTypesFromValues(Object[] values) {
         if (values == null) {
-            return EMPTY_CLASS_ARRAY;
+            return null;
         }
 
         Class<?> result[] = new Class<?>[values.length];
@@ -567,8 +551,8 @@ class Util {
         }
         return null;
     }
-
-
+    
+    
     static Constructor<?> findConstructor(Class<?> clazz, Class<?>[] paramTypes,
             Object[] paramValues) {
 
@@ -576,7 +560,7 @@ class Util {
 
         if (clazz == null) {
             throw new MethodNotFoundException(
-                    message(null, "util.method.notfound", null, methodName,
+                    message(null, "util.method.notfound", clazz, methodName,
                     paramString(paramTypes)));
         }
 
@@ -588,8 +572,12 @@ class Util {
 
         List<Wrapper> wrappers = Wrapper.wrap(constructors);
 
-        Wrapper result = findWrapper(clazz, wrappers, methodName, paramTypes, paramValues);
+        Wrapper result = findWrapper(
+                clazz, wrappers, methodName, paramTypes, paramValues);
 
+        if (result == null) {
+            return null;
+        }
         return getConstructor(clazz, (Constructor<?>) result.unWrap());
     }
 
@@ -621,11 +609,7 @@ class Util {
         Object[] parameters = null;
         if (parameterTypes.length > 0) {
             parameters = new Object[parameterTypes.length];
-            int paramCount;
-            if (params == null) {
-                params = EMPTY_OBJECT_ARRAY;
-            }
-            paramCount = params.length;
+            int paramCount = params.length;
             if (isVarArgs) {
                 int varArgIndex = parameterTypes.length - 1;
                 // First argCount-1 parameters are standard
@@ -659,7 +643,7 @@ class Util {
     private abstract static class Wrapper {
 
         public static List<Wrapper> wrap(Method[] methods, String name) {
-            List<Wrapper> result = new ArrayList<>();
+            List<Wrapper> result = new ArrayList<Wrapper>();
             for (Method method : methods) {
                 if (method.getName().equals(name)) {
                     result.add(new MethodWrapper(method));
@@ -669,7 +653,7 @@ class Util {
         }
 
         public static List<Wrapper> wrap(Constructor<?>[] constructors) {
-            List<Wrapper> result = new ArrayList<>();
+            List<Wrapper> result = new ArrayList<Wrapper>();
             for (Constructor<?> constructor : constructors) {
                 result.add(new ConstructorWrapper(constructor));
             }
@@ -775,45 +759,35 @@ class Util {
 
         @Override
         public int compareTo(MatchResult o) {
-            int cmp = Integer.compare(this.getExact(), o.getExact());
-            if (cmp == 0) {
-                cmp = Integer.compare(this.getAssignable(), o.getAssignable());
-                if (cmp == 0) {
-                    cmp = Integer.compare(this.getCoercible(), o.getCoercible());
-                    if (cmp == 0) {
+            if (this.getExact() < o.getExact()) {
+                return -1;
+            } else if (this.getExact() > o.getExact()) {
+                return 1;
+            } else {
+                if (this.getAssignable() < o.getAssignable()) {
+                    return -1;
+                } else if (this.getAssignable() > o.getAssignable()) {
+                    return 1;
+                } else {
+                    if (this.getCoercible() < o.getCoercible()) {
+                        return -1;
+                    } else if (this.getCoercible() > o.getCoercible()) {
+                        return 1;
+                    } else {
                         // The nature of bridge methods is such that it actually
                         // doesn't matter which one we pick as long as we pick
                         // one. That said, pick the 'right' one (the non-bridge
                         // one) anyway.
-                        cmp = Boolean.compare(o.isBridge(), this.isBridge());
+                        if (o.isBridge() && !this.isBridge()) {
+                            return 1;
+                        } else if (!o.isBridge() && this.isBridge()) {
+                            return -1;
+                        } else {
+                            return 0;
+                        }
                     }
                 }
             }
-            return cmp;
-        }
-
-        @Override
-        public boolean equals(Object o)
-        {
-            return o == this
-                    || (null != o
-                    && this.getClass().equals(o.getClass())
-                    && ((MatchResult)o).getExact() == this.getExact()
-                    && ((MatchResult)o).getAssignable() == this.getAssignable()
-                    && ((MatchResult)o).getCoercible() == this.getCoercible()
-                    && ((MatchResult)o).isBridge() == this.isBridge()
-                    )
-                    ;
-        }
-
-        @Override
-        public int hashCode()
-        {
-            return (this.isBridge() ? 1 << 24 : 0)
-                    ^ this.getExact() << 16
-                    ^ this.getAssignable() << 8
-                    ^ this.getCoercible()
-                    ;
         }
     }
 }

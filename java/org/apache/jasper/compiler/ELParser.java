@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,12 +25,12 @@ import org.apache.jasper.compiler.ELNode.Text;
 
 /**
  * This class implements a parser for EL expressions.
- *
+ * 
  * It takes strings of the form xxx${..}yyy${..}zzz etc, and turn it into a
  * ELNode.Nodes.
- *
+ * 
  * Currently, it only handles text outside ${..} and functions in ${ ..}.
- *
+ * 
  * @author Kin-man Chung
  */
 
@@ -47,7 +47,7 @@ public class ELParser {
     private int index; // Current index of the expression
 
     private final String expression; // The EL expression
-
+    
     private char type;
 
     private final boolean isDeferredSyntaxAllowedAsLiteral;
@@ -65,7 +65,7 @@ public class ELParser {
 
     /**
      * Parse an EL expression
-     *
+     * 
      * @param expression
      *            The input expression string of the form Char* ('${' Char*
      *            '}')* Char*
@@ -93,10 +93,10 @@ public class ELParser {
     /**
      * Parse an EL expression string '${...}'. Currently only separates the EL
      * into functions and everything else.
-     *
+     * 
      * @return An ELNode.Nodes representing the EL expression
-     *
-     * Note: This cannot be refactored to use the standard EL implementation as
+     * 
+     * Note: This can not be refactored to use the standard EL implementation as
      *       the EL API does not provide the level of access required to the
      *       parsed expression.
      */
@@ -106,17 +106,11 @@ public class ELParser {
         ELexpr = new ELNode.Nodes();
         curToken = null;
         prevToken = null;
-        int openBraces = 0;
         while (hasNext()) {
             curToken = nextToken();
             if (curToken instanceof Char) {
                 if (curToken.toChar() == '}') {
-                    openBraces--;
-                    if (openBraces < 0) {
-                        break;
-                    }
-                } else if (curToken.toChar() == '{') {
-                    openBraces++;
+                    break;
                 }
                 buf.append(curToken.toString());
             } else {
@@ -186,7 +180,7 @@ public class ELParser {
         int i = 0;
         int j = reservedWords.length;
         while (i < j) {
-            int k = (i + j) >>> 1;
+            int k = (i + j) / 2;
             int result = reservedWords[k].compareTo(id);
             if (result == 0) {
                 return true;
@@ -202,8 +196,8 @@ public class ELParser {
 
     /**
      * Skip until an EL expression ('${' || '#{') is reached, allowing escape
-     * sequences '\$' and '\#'.
-     *
+     * sequences '\${' and '\#{'.
+     * 
      * @return The text string up to the EL expression
      */
     private String skipUntilEL() {

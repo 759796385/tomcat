@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,7 +35,7 @@ public interface UserDatabase {
 
 
     /**
-     * @return the UserConfig listener with which we are associated.
+     * Return the UserConfig listener with which we are associated.
      */
     public UserConfig getUserConfig();
 
@@ -52,7 +52,7 @@ public interface UserDatabase {
 
 
     /**
-     * @return an absolute pathname to the home directory for the specified user.
+     * Return an absolute pathname to the home directory for the specified user.
      *
      * @param user User for which a home directory should be retrieved
      */
@@ -60,7 +60,7 @@ public interface UserDatabase {
 
 
     /**
-     * @return an enumeration of the usernames defined on this server.
+     * Return an enumeration of the usernames defined on this server.
      */
     public Enumeration<String> getUsers();
 

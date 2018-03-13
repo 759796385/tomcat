@@ -22,9 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import javax.el.ELException;
 import javax.el.ExpressionFactory;
@@ -42,7 +40,6 @@ import javax.servlet.jsp.tagext.ValidationMessage;
 import org.apache.jasper.JasperException;
 import org.apache.jasper.compiler.ELNode.Text;
 import org.apache.jasper.el.ELContextImpl;
-import org.apache.tomcat.util.security.Escape;
 import org.xml.sax.Attributes;
 
 /**
@@ -61,11 +58,11 @@ class Validator {
     /**
      * A visitor to validate and extract page directive info
      */
-    private static class DirectiveVisitor extends Node.Visitor {
+    static class DirectiveVisitor extends Node.Visitor {
 
-        private final PageInfo pageInfo;
+        private PageInfo pageInfo;
 
-        private final ErrorDispatcher err;
+        private ErrorDispatcher err;
 
         private static final JspUtil.ValidAttribute[] pageDirectiveAttrs = {
             new JspUtil.ValidAttribute("language"),
@@ -418,13 +415,13 @@ class Validator {
     /**
      * A visitor for validating nodes other than page directives
      */
-    private static class ValidateVisitor extends Node.Visitor {
+    static class ValidateVisitor extends Node.Visitor {
 
-        private final PageInfo pageInfo;
+        private PageInfo pageInfo;
 
-        private final ErrorDispatcher err;
+        private ErrorDispatcher err;
 
-        private final ClassLoader loader;
+        private ClassLoader loader;
 
         private final StringBuilder buf = new StringBuilder(32);
 
@@ -526,8 +523,7 @@ class Validator {
             JspUtil.checkAttributes("Jsp:root", n, jspRootAttrs, err);
             String version = n.getTextAttribute("version");
             if (!version.equals("1.2") && !version.equals("2.0") &&
-                    !version.equals("2.1") && !version.equals("2.2") &&
-                    !version.equals("2.3")) {
+                    !version.equals("2.1") && !version.equals("2.2")) {
                 err.jspError(n, "jsp.error.jsproot.version.invalid", version);
             }
             visitBody(n);
@@ -657,7 +653,6 @@ class Validator {
             visitBody(n);
         }
 
-        @SuppressWarnings("null") // type can't be null after initial test
         @Override
         public void visit(Node.PlugIn n) throws JasperException {
             JspUtil.checkAttributes("Plugin", n, plugInAttrs, err);
@@ -809,7 +804,6 @@ class Validator {
             return false;
         }
 
-        @SuppressWarnings("null") // tagInfo can't be null after initial test
         @Override
         public void visit(Node.CustomTag n) throws JasperException {
 
@@ -877,7 +871,7 @@ class Validator {
             if (jspAttrsSize > 0) {
                 jspAttrs = new Node.JspAttribute[jspAttrsSize];
             }
-            Hashtable<String, Object> tagDataAttrs = new Hashtable<>(attrsSize);
+            Hashtable<String, Object> tagDataAttrs = new Hashtable<String, Object>(attrsSize);
 
             checkXmlAttributes(n, jspAttrs, tagDataAttrs);
             checkNamedAttributes(n, jspAttrs, attrsSize, tagDataAttrs);
@@ -1079,6 +1073,9 @@ class Validator {
                 throws JasperException {
 
             TagInfo tagInfo = n.getTagInfo();
+            if (tagInfo == null) {
+                err.jspError(n, "jsp.error.missing.tagInfo", n.getQName());
+            }
             TagAttributeInfo[] tldAttrs = tagInfo.getAttributes();
             Attributes attrs = n.getAttributes();
 
@@ -1283,6 +1280,9 @@ class Validator {
                 throws JasperException {
 
             TagInfo tagInfo = n.getTagInfo();
+            if (tagInfo == null) {
+                err.jspError(n, "jsp.error.missing.tagInfo", n.getQName());
+            }
             TagAttributeInfo[] tldAttrs = tagInfo.getAttributes();
             Node.Nodes naNodes = n.getNamedAttributeNodes();
 
@@ -1406,7 +1406,7 @@ class Validator {
                             el.visit(v);
                             value = v.getText();
                         } else {
-                            value = Escape.xml(value);
+                            value = xmlEscape(value);
                         }
                     }
 
@@ -1414,8 +1414,7 @@ class Validator {
                             value, false, el, dynamic);
 
                     if (el != null) {
-                        ELContextImpl ctx =
-                                new ELContextImpl(expressionFactory);
+                        ELContextImpl ctx = new ELContextImpl();
                         ctx.setFunctionMapper(getFunctionMapper(el));
 
                         try {
@@ -1455,7 +1454,7 @@ class Validator {
             @Override
             public void visit(Text n) throws JasperException {
                 output.append(ELParser.escapeLiteralExpression(
-                        Escape.xml(n.getText()),
+                        xmlEscape(n.getText()),
                         isDeferredSyntaxAllowedAsLiteral));
             }
         }
@@ -1488,8 +1487,9 @@ class Validator {
                         if (((ELNode.Root) node).getType() == '$') {
                             elExpression = true;
                             break;
-                        } else if (checkDeferred && !pageInfo.isDeferredSyntaxAllowedAsLiteral()
-                                && ((ELNode.Root) node).getType() == '#') {
+                        } else if (checkDeferred &&
+                                !pageInfo.isDeferredSyntaxAllowedAsLiteral() &&
+                                ((ELNode.Root) node).getType() == '#') {
                             elExpression = true;
                             break;
                         }
@@ -1565,7 +1565,7 @@ class Validator {
 
             class FVVisitor extends ELNode.Visitor {
 
-                private Node n;
+                Node n;
 
                 FVVisitor(Node n) {
                     this.n = n;
@@ -1585,10 +1585,8 @@ class Validator {
 
                     if (uri == null) {
                         if (prefix == null) {
-                            // This can occur when lambda expressions define
-                            // functions and when functions are imported. No
-                            // longer able to be sure this is an error.
-                            return;
+                            err.jspError(n, "jsp.error.noFunctionPrefix",
+                                    function);
                         } else {
                             err.jspError(n, "jsp.error.attribute.invalidPrefix",
                                     prefix);
@@ -1617,7 +1615,7 @@ class Validator {
             validateFunctions(el, n);
 
             // test it out
-            ELContextImpl ctx = new ELContextImpl(expressionFactory);
+            ELContextImpl ctx = new ELContextImpl();
             ctx.setFunctionMapper(this.getFunctionMapper(el));
             ExpressionFactory ef = this.pageInfo.getExpressionFactory();
             try {
@@ -1663,7 +1661,7 @@ class Validator {
                 throws JasperException {
             FunctionInfo funcInfo = func.getFunctionInfo();
             String signature = funcInfo.getFunctionSignature();
-            List<String> params = new ArrayList<>();
+            ArrayList<String> params = new ArrayList<String>();
             // Signature is of the form
             // <return-type> S <method-name S? '('
             // < <arg-type> ( ',' <arg-type> )* )? ')'
@@ -1696,12 +1694,10 @@ class Validator {
 
             class ValidateFunctionMapper extends FunctionMapper {
 
-                private Map<String, Method> fnmap = new HashMap<>();
+                private HashMap<String, Method> fnmap = new HashMap<String, Method>();
 
-                @Override
-                public void mapFunction(String prefix, String localName,
-                        Method method) {
-                    fnmap.put(prefix + ":" + localName, method);
+                public void mapFunction(String fnQName, Method method) {
+                    fnmap.put(fnQName, method);
                 }
 
                 @Override
@@ -1711,20 +1707,14 @@ class Validator {
             }
 
             class MapperELVisitor extends ELNode.Visitor {
-                private ValidateFunctionMapper fmapper;
+                ValidateFunctionMapper fmapper;
 
                 MapperELVisitor(ValidateFunctionMapper fmapper) {
                     this.fmapper = fmapper;
                 }
 
-                @SuppressWarnings("null") // c can't be null after catch block
                 @Override
                 public void visit(ELNode.Function n) throws JasperException {
-
-                    // Lambda / ImportHandler defined function
-                    if (n.getFunctionInfo() == null) {
-                        return;
-                    }
 
                     Class<?> c = null;
                     Method method = null;
@@ -1754,7 +1744,7 @@ class Validator {
                         err.jspError("jsp.error.noFunctionMethod", n
                                 .getMethodName(), n.getName(), c.getName());
                     }
-                    fmapper.mapFunction(n.getPrefix(), n.getName(),
+                    fmapper.mapFunction(n.getPrefix() + ':' + n.getName(),
                             method);
                 }
             }
@@ -1768,9 +1758,9 @@ class Validator {
     /**
      * A visitor for validating TagExtraInfo classes of all tags
      */
-    private static class TagExtraInfoVisitor extends Node.Visitor {
+    static class TagExtraInfoVisitor extends Node.Visitor {
 
-        private final ErrorDispatcher err;
+        private ErrorDispatcher err;
 
         /*
          * Constructor
@@ -1786,7 +1776,6 @@ class Validator {
                 err.jspError(n, "jsp.error.missing.tagInfo", n.getQName());
             }
 
-            @SuppressWarnings("null") // tagInfo can't be null here
             ValidationMessage[] errors = tagInfo.validate(n.getTagData());
             if (errors != null && errors.length != 0) {
                 StringBuilder errMsg = new StringBuilder();
@@ -1822,7 +1811,7 @@ class Validator {
         PageInfo pageInfo = compiler.getPageInfo();
         String contentType = pageInfo.getContentType();
 
-        if (contentType == null || !contentType.contains("charset=")) {
+        if (contentType == null || contentType.indexOf("charset=") < 0) {
             boolean isXml = page.getRoot().isXmlSyntax();
             String defaultType;
             if (contentType == null) {
@@ -1915,5 +1904,68 @@ class Validator {
         if (errMsg != null) {
             errDisp.jspError(errMsg.toString());
         }
+    }
+
+    protected static String xmlEscape(String s) {
+        if (s == null) {
+            return null;
+        }
+        int len = s.length();
+
+        /*
+         * Look for any "bad" characters, Escape "bad" character was found
+         */
+        // ASCII " 34 & 38 ' 39 < 60 > 62
+        for (int i = 0; i < len; i++) {
+            char c = s.charAt(i);
+            if (c >= '\"' && c <= '>' &&
+                    (c == '<' || c == '>' || c == '\'' || c == '&' || c == '"')) {
+                // need to escape them and then quote the whole string
+                StringBuilder sb = new StringBuilder((int) (len * 1.2));
+                sb.append(s, 0, i);
+                int pos = i + 1;
+                for (int j = i; j < len; j++) {
+                    c = s.charAt(j);
+                    if (c >= '\"' && c <= '>') {
+                        if (c == '<') {
+                            if (j > pos) {
+                                sb.append(s, pos, j);
+                            }
+                            sb.append("&lt;");
+                            pos = j + 1;
+                        } else if (c == '>') {
+                            if (j > pos) {
+                                sb.append(s, pos, j);
+                            }
+                            sb.append("&gt;");
+                            pos = j + 1;
+                        } else if (c == '\'') {
+                            if (j > pos) {
+                                sb.append(s, pos, j);
+                            }
+                            sb.append("&#039;"); // &apos;
+                            pos = j + 1;
+                        } else if (c == '&') {
+                            if (j > pos) {
+                                sb.append(s, pos, j);
+                            }
+                            sb.append("&amp;");
+                            pos = j + 1;
+                        } else if (c == '"') {
+                            if (j > pos) {
+                                sb.append(s, pos, j);
+                            }
+                            sb.append("&#034;"); // &quot;
+                            pos = j + 1;
+                        }
+                    }
+                }
+                if (pos < len) {
+                    sb.append(s, pos, len);
+                }
+                return sb.toString();
+            }
+        }
+        return s;
     }
 }

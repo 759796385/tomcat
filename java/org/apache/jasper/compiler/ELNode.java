@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -37,6 +37,10 @@ import org.apache.jasper.JasperException;
 abstract class ELNode {
 
     public abstract void accept(Visitor v) throws JasperException;
+
+    /**
+     * Child classes
+     */
 
 
     /**
@@ -188,11 +192,11 @@ abstract class ELNode {
         /* Name used for creating a map for the functions in this
            EL expression, for communication to Generator.
          */
-        private String mapName = null;    // The function map associated this EL
+        String mapName = null;        // The function map associated this EL
         private final List<ELNode> list;
 
         public Nodes() {
-            list = new ArrayList<>();
+            list = new ArrayList<ELNode>();
         }
 
         public void add(ELNode en) {
@@ -200,14 +204,13 @@ abstract class ELNode {
         }
 
         /**
-         * Visit the nodes in the list with the supplied visitor.
-         *
+         * Visit the nodes in the list with the supplied visitor
          * @param v The visitor used
-         *
-         * @throws JasperException if an error occurs while visiting a node
          */
         public void visit(Visitor v) throws JasperException {
-            for (ELNode n : list) {
+            Iterator<ELNode> iter = list.iterator();
+            while (iter.hasNext()) {
+                ELNode n = iter.next();
                 n.accept(v);
             }
         }
@@ -224,7 +227,9 @@ abstract class ELNode {
          * @return true if the expression contains a ${...}
          */
         public boolean containsEL() {
-            for (ELNode n : list) {
+            Iterator<ELNode> iter = list.iterator();
+            while (iter.hasNext()) {
+                ELNode n = iter.next();
                 if (n instanceof Root) {
                     return true;
                 }
@@ -239,7 +244,7 @@ abstract class ELNode {
         public String getMapName() {
             return mapName;
         }
-
+    
     }
 
     /*

@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,7 +18,6 @@ package org.apache.jasper.compiler;
 
 import org.apache.jasper.JasperException;
 import org.apache.jasper.Options;
-import org.apache.jasper.TrimSpacesOption;
 
 /**
  */
@@ -27,13 +26,12 @@ public class TextOptimizer {
     /**
      * A visitor to concatenate contiguous template texts.
      */
-    private static class TextCatVisitor extends Node.Visitor {
+    static class TextCatVisitor extends Node.Visitor {
 
         private static final String EMPTY_TEXT = "";
-        private static final String SINGLE_SPACE = " ";
 
-        private final Options options;
-        private final PageInfo pageInfo;
+        private Options options;
+        private PageInfo pageInfo;
         private int textNodeCount = 0;
         private Node.TemplateText firstTextNode = null;
         private StringBuilder textBuffer;
@@ -83,15 +81,10 @@ public class TextOptimizer {
 
         @Override
         public void visit(Node.TemplateText n) throws JasperException {
-            if (n.isAllSpace()) {
-                if ((options.getTrimSpaces() == TrimSpacesOption.TRUE ||
-                        pageInfo.isTrimDirectiveWhitespaces())) {
-                    n.setText(EMPTY_TEXT);
-                    return;
-                } else if (options.getTrimSpaces() == TrimSpacesOption.SINGLE) {
-                    n.setText(SINGLE_SPACE);
-                    return;
-                }
+            if ((options.getTrimSpaces() || pageInfo.isTrimDirectiveWhitespaces()) 
+                    && n.isAllSpace()) {
+                n.setText(EMPTY_TEXT);
+                return;
             }
 
             if (textNodeCount++ == 0) {
@@ -106,7 +99,7 @@ public class TextOptimizer {
 
         /**
          * This method breaks concatenation mode.  As a side effect it copies
-         * the concatenated string to the first text node
+         * the concatenated string to the first text node 
          */
         private void collectText() {
 

@@ -19,7 +19,7 @@ package org.apache.catalina.loader;
 import org.apache.catalina.LifecycleException;
 
 public class WebappClassLoader extends WebappClassLoaderBase {
-
+    
     public WebappClassLoader() {
         super();
     }
@@ -59,15 +59,5 @@ public class WebappClassLoader extends WebappClassLoaderBase {
         }
 
         return result;
-    }
-
-
-    /**
-     * This class loader is not parallel capable so lock on the class loader
-     * rather than a per-class lock.
-     */
-    @Override
-    protected Object getClassLoadingLock(String className) {
-        return this;
     }
 }

@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,6 +22,38 @@ package org.apache.catalina.manager.host;
 public class Constants {
 
     public static final String Package = "org.apache.catalina.manager.host";
+
+    public static final String BODY_HEADER_SECTION =
+        "<title>{0}</title>\n" +
+        "</head>\n" +
+        "\n" +
+        "<body bgcolor=\"#FFFFFF\">\n" +
+        "\n" +
+        "<table cellspacing=\"4\" border=\"0\">\n" +
+        " <tr>\n" +
+        "  <td colspan=\"2\">\n" +
+        "   <a href=\"http://tomcat.apache.org/\">\n" +
+        "    <img border=\"0\" alt=\"The Tomcat Servlet/JSP Container\"\n" +
+        "         align=\"left\" src=\"{0}/images/tomcat.gif\">\n" +
+        "   </a>\n" +
+        "   <a href=\"http://www.apache.org/\">\n" +
+        "    <img border=\"0\" alt=\"The Apache Software Foundation\" align=\"right\"\n" +
+        "         src=\"{0}/images/asf-logo.svg\" style=\"width: 266px; height: 83px;\">\n" +
+        "   </a>\n" +
+        "  </td>\n" +
+        " </tr>\n" +
+        "</table>\n" +
+        "<hr size=\"1\" noshade=\"noshade\">\n" +
+        "<table cellspacing=\"4\" border=\"0\">\n" +
+        " <tr>\n" +
+        "  <td class=\"page-title\" bordercolor=\"#000000\" " +
+        "align=\"left\" nowrap>\n" +
+        "   <font size=\"+2\">{1}</font>\n" +
+        "  </td>\n" +
+        " </tr>\n" +
+        "</table>\n" +
+        "<br>\n" +
+        "\n";
 
     public static final String MESSAGE_SECTION =
         "<table border=\"1\" cellspacing=\"0\" cellpadding=\"3\">\n" +

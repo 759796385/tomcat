@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,38 +17,39 @@
 package org.apache.catalina.util;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
 /**
  *  Representation of a Manifest file and its available extensions and
  *  required extensions
- *
+ *  
  * @author Greg Murray
  * @author Justyna Horwat
  */
 public class ManifestResource {
-
+    
     // ------------------------------------------------------------- Properties
 
     // These are the resource types for determining effect error messages
     public static final int SYSTEM = 1;
     public static final int WAR = 2;
     public static final int APPLICATION = 3;
-
+    
     private ArrayList<Extension> availableExtensions = null;
     private ArrayList<Extension> requiredExtensions = null;
-
-    private final String resourceName;
-    private final int resourceType;
-
-    public ManifestResource(String resourceName, Manifest manifest,
+    
+    private String resourceName = null;
+    private int resourceType = -1;
+        
+    public ManifestResource(String resourceName, Manifest manifest, 
                             int resourceType) {
         this.resourceName = resourceName;
         this.resourceType = resourceType;
         processManifest(manifest);
     }
-
+    
     /**
      * Gets the name of the resource
      *
@@ -66,16 +67,16 @@ public class ManifestResource {
     public ArrayList<Extension> getAvailableExtensions() {
         return availableExtensions;
     }
-
+    
     /**
      * Gets the list of required extensions
      *
      * @return List of required extensions
      */
     public ArrayList<Extension> getRequiredExtensions() {
-        return requiredExtensions;
+        return requiredExtensions;   
     }
-
+    
     // --------------------------------------------------------- Public Methods
 
     /**
@@ -86,7 +87,7 @@ public class ManifestResource {
     public int getAvailableExtensionCount() {
         return (availableExtensions != null) ? availableExtensions.size() : 0;
     }
-
+    
     /**
      * Gets the number of required extensions
      *
@@ -95,7 +96,17 @@ public class ManifestResource {
     public int getRequiredExtensionCount() {
         return (requiredExtensions != null) ? requiredExtensions.size() : 0;
     }
-
+    
+    /**
+     * Convenience method to check if this <code>ManifestResource</code>
+     * has an requires extensions.
+     *
+     * @return true if required extensions are present
+     */
+    public boolean requiresExtensions() {
+        return (requiredExtensions != null) ? true : false;
+    }
+    
     /**
      * Returns <code>true</code> if all required extension dependencies
      * have been meet for this <code>ManifestResource</code> object.
@@ -106,14 +117,17 @@ public class ManifestResource {
         if (requiredExtensions == null) {
             return true;
         }
-        for (Extension ext : requiredExtensions) {
-            if (!ext.isFulfilled()) return false;
+        Iterator<Extension> it = requiredExtensions.iterator();
+        while (it.hasNext()) {
+            Extension ext = it.next();
+            if (!ext.isFulfilled()) return false;            
         }
         return true;
     }
-
+    
     @Override
     public String toString() {
+
         StringBuilder sb = new StringBuilder("ManifestResource[");
         sb.append(resourceName);
 
@@ -129,7 +143,7 @@ public class ManifestResource {
             case APPLICATION : sb.append(", resourceType=APPLICATION"); break;
         }
         sb.append("]");
-        return sb.toString();
+        return (sb.toString());
     }
 
 
@@ -139,7 +153,7 @@ public class ManifestResource {
         availableExtensions = getAvailableExtensions(manifest);
         requiredExtensions = getRequiredExtensions(manifest);
     }
-
+    
     /**
      * Return the set of <code>Extension</code> objects representing optional
      * packages that are required by the application associated with the
@@ -157,7 +171,7 @@ public class ManifestResource {
         if (names == null)
             return null;
 
-        ArrayList<Extension> extensionList = new ArrayList<>();
+        ArrayList<Extension> extensionList = new ArrayList<Extension>();
         names += " ";
 
         while (true) {
@@ -186,7 +200,7 @@ public class ManifestResource {
         }
         return extensionList;
     }
-
+    
     /**
      * Return the set of <code>Extension</code> objects representing optional
      * packages that are bundled with the application associated with the
@@ -204,7 +218,7 @@ public class ManifestResource {
         if (name == null)
             return null;
 
-        ArrayList<Extension> extensionList = new ArrayList<>();
+        ArrayList<Extension> extensionList = new ArrayList<Extension>();
 
         Extension extension = new Extension();
         extension.setExtensionName(name);
@@ -223,5 +237,5 @@ public class ManifestResource {
 
         return extensionList;
     }
-
+    
 }

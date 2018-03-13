@@ -81,12 +81,11 @@ package javax.servlet.jsp.tagext;
  * thus where synchronization is needed as illustrated by the table below.
  * <b>Note:</b> the synchronization of the variable(s) will occur <em>after</em>
  * the respective method has been called. <blockquote>
- * <table cellpadding="2" cellspacing="2" border="0" width="55%"
- *        style="background-color:#999999" summary="Variable Synchronization Points">
+ * <table cellpadding="2" cellspacing="2" border="0" width="55%" style="background-color:#999999" summary="Variable Synchronization Points">
  * <tbody>
  * <tr align="center">
- * <td valign="top" colspan="6" style="background-color:#999999">
- *   <u><b>Variable Synchronization Points</b></u><br>
+ * <td valign="top" colspan="6" style="background-color:#999999"><u><b>Variable Synchronization
+ * Points</b></u><br>
  * </td>
  * </tr>
  * <tr>
@@ -188,7 +187,7 @@ public class VariableInfo {
     /**
      * Constructor These objects can be created (at translation time) by the
      * TagExtraInfo instances.
-     *
+     * 
      * @param varName
      *            The name of the scripting variable
      * @param className
@@ -211,7 +210,7 @@ public class VariableInfo {
 
     /**
      * Returns the name of the scripting variable.
-     *
+     * 
      * @return the name of the scripting variable
      */
     public String getVarName() {
@@ -220,7 +219,7 @@ public class VariableInfo {
 
     /**
      * Returns the type of this variable.
-     *
+     * 
      * @return the type of this variable
      */
     public String getClassName() {
@@ -230,7 +229,7 @@ public class VariableInfo {
     /**
      * Returns whether this is a new variable. If so, in some languages this
      * will require a declaration.
-     *
+     * 
      * @return whether this is a new variable.
      */
     public boolean getDeclare() {
@@ -239,7 +238,7 @@ public class VariableInfo {
 
     /**
      * Returns the lexical scope of the variable.
-     *
+     * 
      * @return the lexical scope of the variable, either AT_BEGIN, AT_END, or
      *         NESTED.
      * @see #AT_BEGIN

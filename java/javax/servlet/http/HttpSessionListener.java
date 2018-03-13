@@ -23,7 +23,7 @@ import java.util.EventListener;
  * active sessions in a web application. To receive notification events, the
  * implementation class must be configured in the deployment descriptor for the
  * web application.
- *
+ * 
  * @see HttpSessionEvent
  * @since v 2.3
  */
@@ -31,21 +31,18 @@ public interface HttpSessionListener extends EventListener {
 
     /**
      * Notification that a session was created.
-     * The default implementation is a NO-OP.
-     *
+     * 
      * @param se
      *            the notification event
      */
-    public default void sessionCreated(HttpSessionEvent se) {
-    }
+    public void sessionCreated(HttpSessionEvent se);
 
     /**
      * Notification that a session is about to be invalidated.
-     * The default implementation is a NO-OP.
-     *
+     * 
      * @param se
      *            the notification event
      */
-    public default void sessionDestroyed(HttpSessionEvent se) {
-    }
+    public void sessionDestroyed(HttpSessionEvent se);
+
 }

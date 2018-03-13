@@ -36,7 +36,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import javax.management.remote.JMXConnectorServer;
 import javax.management.remote.JMXServiceURL;
@@ -212,7 +211,7 @@ public class JmxRemoteLifecycleListener implements LifecycleListener {
             System.setProperty("java.rmi.server.randomIDs", "true");
 
             // Create the environment
-            Map<String,Object> env = new HashMap<>();
+            HashMap<String,Object> env = new HashMap<String,Object>();
 
             RMIClientSocketFactory registryCsf = null;
             RMIServerSocketFactory registrySsf = null;
@@ -297,7 +296,7 @@ public class JmxRemoteLifecycleListener implements LifecycleListener {
 
     private JMXConnectorServer createServer(String serverName,
             String bindAddress, int theRmiRegistryPort, int theRmiServerPort,
-            Map<String,Object> theEnv,
+            HashMap<String,Object> theEnv,
             RMIClientSocketFactory registryCsf, RMIServerSocketFactory registrySsf,
             RMIClientSocketFactory serverCsf, RMIServerSocketFactory serverSsf) {
 
@@ -337,7 +336,11 @@ public class JmxRemoteLifecycleListener implements LifecycleListener {
             log.info(sm.getString("jmxRemoteLifecycleListener.start",
                     Integer.toString(theRmiRegistryPort),
                     Integer.toString(theRmiServerPort), serverName));
-        } catch (IOException | AlreadyBoundException e) {
+        } catch (IOException e) {
+            log.error(sm.getString(
+                    "jmxRemoteLifecycleListener.createServerFailed",
+                    serverName), e);
+        } catch (AlreadyBoundException e) {
             log.error(sm.getString(
                     "jmxRemoteLifecycleListener.createServerFailed",
                     serverName), e);
@@ -423,7 +426,7 @@ public class JmxRemoteLifecycleListener implements LifecycleListener {
             }
             sslServerSocketFactory = sslContext.getServerSocketFactory();
             String[] protocols = sslContext.getDefaultSSLParameters().getProtocols();
-            List<String> filteredProtocols = new ArrayList<>(protocols.length);
+            List<String> filteredProtocols = new ArrayList<String>(protocols.length);
             for (String protocol : protocols) {
                 if (protocol.toUpperCase(Locale.ENGLISH).contains("SSL")) {
                     continue;
@@ -464,33 +467,6 @@ public class JmxRemoteLifecycleListener implements LifecycleListener {
             }
             sslServerSocket.setNeedClientAuth(getNeedClientAuth());
             return sslServerSocket;
-        }
-
-        // Super class defines hashCode() and equals(). Probably not used in
-        // Tomcat but for safety, override them here.
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = super.hashCode();
-            result = prime * result + ((bindAddress == null) ? 0 : bindAddress.hashCode());
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (!super.equals(obj))
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
-            SslRmiServerBindSocketFactory other = (SslRmiServerBindSocketFactory) obj;
-            if (bindAddress == null) {
-                if (other.bindAddress != null)
-                    return false;
-            } else if (!bindAddress.equals(other.bindAddress))
-                return false;
-            return true;
         }
     }
 }

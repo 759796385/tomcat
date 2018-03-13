@@ -61,18 +61,6 @@ public class TestClientCert extends TomcatBaseTest {
         // Unprotected resource
         ByteChunk res =
                 getUrl("https://localhost:" + getPort() + "/unprotected");
-
-        if (log.isDebugEnabled()) {
-            int count = TesterSupport.getLastClientAuthRequestedIssuerCount();
-            log.debug("Last client KeyManager usage: " + TesterSupport.getLastClientAuthKeyManagerUsage() +
-                      ", " + count + " requested Issuers, first one: " +
-                      (count > 0 ? TesterSupport.getLastClientAuthRequestedIssuer(0).getName() : "NONE"));
-            log.debug("Expected requested Issuer: " + TesterSupport.getClientAuthExpectedIssuer());
-        }
-        Assert.assertTrue("Checking requested client issuer against " +
-                TesterSupport.getClientAuthExpectedIssuer(),
-                TesterSupport.checkLastClientAuthRequestedIssuers());
-
         if (preemptive) {
             Assert.assertEquals("OK-" + TesterSupport.ROLE, res.toString());
         } else {
@@ -81,18 +69,6 @@ public class TestClientCert extends TomcatBaseTest {
 
         // Protected resource
         res = getUrl("https://localhost:" + getPort() + "/protected");
-
-        if (log.isDebugEnabled()) {
-            int count = TesterSupport.getLastClientAuthRequestedIssuerCount();
-            log.debug("Last client KeyManager usage: " + TesterSupport.getLastClientAuthKeyManagerUsage() +
-                      ", " + count + " requested Issuers, first one: " +
-                      (count > 0 ? TesterSupport.getLastClientAuthRequestedIssuer(0).getName() : "NONE"));
-            log.debug("Expected requested Issuer: " + TesterSupport.getClientAuthExpectedIssuer());
-        }
-        Assert.assertTrue("Checking requested client issuer against " +
-                TesterSupport.getClientAuthExpectedIssuer(),
-                TesterSupport.checkLastClientAuthRequestedIssuers());
-
         Assert.assertEquals("OK-" + TesterSupport.ROLE, res.toString());
     }
 
@@ -130,36 +106,12 @@ public class TestClientCert extends TomcatBaseTest {
         // Unprotected resource
         ByteChunk res = postUrl(body,
                 "https://localhost:" + getPort() + "/unprotected");
-
-        if (log.isDebugEnabled()) {
-            int count = TesterSupport.getLastClientAuthRequestedIssuerCount();
-            log.debug("Last client KeyManager usage: " + TesterSupport.getLastClientAuthKeyManagerUsage() +
-                      ", " + count + " requested Issuers, first one: " +
-                      (count > 0 ? TesterSupport.getLastClientAuthRequestedIssuer(0).getName() : "NONE"));
-            log.debug("Expected requested Issuer: " + TesterSupport.getClientAuthExpectedIssuer());
-        }
-        Assert.assertTrue("Checking requested client issuer against " +
-                TesterSupport.getClientAuthExpectedIssuer(),
-                TesterSupport.checkLastClientAuthRequestedIssuers());
-
         Assert.assertEquals("OK-" + bodySize, res.toString());
 
         // Protected resource
         res.recycle();
         int rc = postUrl(body, "https://localhost:" + getPort() + "/protected",
                 res, null);
-
-        if (log.isDebugEnabled()) {
-            int count = TesterSupport.getLastClientAuthRequestedIssuerCount();
-            log.debug("Last client KeyManager usage: " + TesterSupport.getLastClientAuthKeyManagerUsage() +
-                      ", " + count + " requested Issuers, first one: " +
-                      (count > 0 ? TesterSupport.getLastClientAuthRequestedIssuer(0).getName() : "NONE"));
-            log.debug("Expected requested Issuer: " + TesterSupport.getClientAuthExpectedIssuer());
-        }
-        Assert.assertTrue("Checking requested client issuer against " +
-                TesterSupport.getClientAuthExpectedIssuer(),
-                TesterSupport.checkLastClientAuthRequestedIssuers());
-
         if (expectProtectedFail) {
             Assert.assertEquals(401, rc);
         } else {
@@ -169,6 +121,11 @@ public class TestClientCert extends TomcatBaseTest {
 
     @Override
     public void setUp() throws Exception {
+        if (!TesterSupport.RFC_5746_SUPPORTED) {
+            // Make sure SSL renegotiation is not disabled in the JVM
+            System.setProperty("sun.security.ssl.allowUnsafeRenegotiation", "true");
+        }
+
         super.setUp();
 
         Tomcat tomcat = getTomcatInstance();

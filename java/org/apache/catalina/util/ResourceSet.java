@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,8 +31,6 @@ import org.apache.tomcat.util.res.StringManager;
  * resource path sets to user classes without having to clone them in order
  * to avoid modifications.  When first created, a <code>ResourceMap</code>
  * is not locked.
- *
- * @param <T> The type of elements in the Set
  *
  * @author Craig R. McClanahan
  */
@@ -101,10 +99,12 @@ public final class ResourceSet<T> extends HashSet<T> {
 
 
     /**
-     * @return the locked state of this parameter map.
+     * Return the locked state of this parameter map.
      */
     public boolean isLocked() {
-        return this.locked;
+
+        return (this.locked);
+
     }
 
 
@@ -114,7 +114,9 @@ public final class ResourceSet<T> extends HashSet<T> {
      * @param locked The new locked state
      */
     public void setLocked(boolean locked) {
+
         this.locked = locked;
+
     }
 
 
@@ -138,10 +140,12 @@ public final class ResourceSet<T> extends HashSet<T> {
      */
     @Override
     public boolean add(T o) {
+
         if (locked)
             throw new IllegalStateException
               (sm.getString("resourceSet.locked"));
-        return super.add(o);
+        return (super.add(o));
+
     }
 
 
@@ -171,10 +175,12 @@ public final class ResourceSet<T> extends HashSet<T> {
      */
     @Override
     public boolean remove(Object o) {
+
         if (locked)
             throw new IllegalStateException
               (sm.getString("resourceSet.locked"));
-        return super.remove(o);
+        return (super.remove(o));
+
     }
 
 

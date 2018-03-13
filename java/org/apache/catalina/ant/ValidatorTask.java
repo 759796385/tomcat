@@ -5,23 +5,21 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-
 package org.apache.catalina.ant;
-
 
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.catalina.Globals;
@@ -33,7 +31,7 @@ import org.xml.sax.InputSource;
 
 
 /**
- * Task for validating a web application deployment descriptor, using XML
+ * Task for validating a web application deployment descriptor, using XML 
  * schema validation.
  *
  * @author Remy Maucherat
@@ -54,7 +52,7 @@ public class ValidatorTask extends BaseRedirectorHelperTask {
     protected String path = null;
 
     public String getPath() {
-        return this.path;
+        return (this.path);
     }
 
     public void setPath(String path) {
@@ -80,7 +78,7 @@ public class ValidatorTask extends BaseRedirectorHelperTask {
         }
 
         File file = new File(path, Constants.ApplicationWebXml);
-        if (!file.canRead()) {
+        if ((!file.exists()) || (!file.canRead())) {
             throw new BuildException("Cannot find web.xml");
         }
 
@@ -93,8 +91,12 @@ public class ValidatorTask extends BaseRedirectorHelperTask {
         // SecurityManager assume that untrusted applications may be deployed.
         Digester digester = DigesterFactory.newDigester(
                 true, true, null, Globals.IS_SECURITY_ENABLED);
-        try (InputStream stream = new BufferedInputStream(new FileInputStream(file.getCanonicalFile()))) {
-            InputSource is = new InputSource(file.toURI().toURL().toExternalForm());
+        InputStream stream = null;
+        try {
+            file = file.getCanonicalFile();
+            stream = new BufferedInputStream(new FileInputStream(file));
+            InputSource is =
+                new InputSource(file.toURI().toURL().toExternalForm());
             is.setByteStream(stream);
             digester.parse(is);
             handleOutput("web.xml validated");
@@ -105,6 +107,13 @@ public class ValidatorTask extends BaseRedirectorHelperTask {
                 handleErrorOutput("Validation failure: " + e);
             }
         } finally {
+            if (stream != null) {
+                try {
+                    stream.close();
+                } catch (IOException e) {
+                 // Ignore
+                }
+            }
             Thread.currentThread().setContextClassLoader(oldCL);
             closeRedirector();
         }

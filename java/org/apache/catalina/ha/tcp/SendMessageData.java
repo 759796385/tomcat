@@ -27,12 +27,12 @@ public class SendMessageData {
     private Object message ;
     private Member destination ;
     private Exception exception ;
-
-
+    
+    
     /**
-     * @param message The message to send
-     * @param destination Member destination
-     * @param exception Associated error
+     * @param message
+     * @param destination
+     * @param exception
      */
     public SendMessageData(Object message, Member destination,
             Exception exception) {
@@ -41,23 +41,41 @@ public class SendMessageData {
         this.destination = destination;
         this.exception = exception;
     }
-
+    
     /**
-     * @return the destination.
+     * @return Returns the destination.
      */
     public Member getDestination() {
         return destination;
     }
     /**
-     * @return the exception.
+     * @param destination The destination to set.
+     */
+    public void setDestination(Member destination) {
+        this.destination = destination;
+    }
+    /**
+     * @return Returns the exception.
      */
     public Exception getException() {
         return exception;
     }
     /**
-     * @return the message.
+     * @param exception The exception to set.
+     */
+    public void setException(Exception exception) {
+        this.exception = exception;
+    }
+    /**
+     * @return Returns the message.
      */
     public Object getMessage() {
         return message;
+    }
+    /**
+     * @param message The message to set.
+     */
+    public void setMessage(Object message) {
+        this.message = message;
     }
 }

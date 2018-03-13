@@ -20,16 +20,16 @@
             ===================================================
 
 Apache Tomcat @VERSION_MAJOR_MINOR@ requires a Java Standard Edition Runtime
-Environment (JRE) version 8 or later.
+Environment (JRE) version 6 or later.
 
 =============================
-Running With JRE 8 Or Later
+Running With JRE 6 Or Later
 =============================
 
 (1) Download and Install a Java SE Runtime Environment (JRE)
 
 (1.1) Download a Java SE Runtime Environment (JRE),
-      release version 8 or later, from
+      release version 6 or later, from
       http://www.oracle.com/technetwork/java/javase/downloads/index.html
 
 (1.2) Install the JRE according to the instructions included with the
@@ -157,7 +157,7 @@ create the following script file:
 
 On Windows, %CATALINA_BASE%\bin\setenv.bat:
 
-  set "JRE_HOME=%ProgramFiles%\Java\jre8"
+  set "JRE_HOME=%ProgramFiles%\Java\jre6"
   exit /b 0
 
 On *nix, $CATALINA_BASE/bin/setenv.sh:
@@ -275,7 +275,8 @@ In CATALINA_HOME:
  * endorsed - Libraries that override standard "Endorsed Standards"
               libraries provided by JRE. See Classloading documentation
               in the User Guide for details.
-              This is only supported for Java <= 8.
+              No longer supported with Java 9.
+
               By default this "endorsed" directory is absent.
 
 In the default configuration the JAR libraries and classes both in

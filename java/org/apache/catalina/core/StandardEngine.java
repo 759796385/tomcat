@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,7 +18,6 @@ package org.apache.catalina.core;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.File;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -28,13 +27,13 @@ import org.apache.catalina.ContainerEvent;
 import org.apache.catalina.ContainerListener;
 import org.apache.catalina.Context;
 import org.apache.catalina.Engine;
+import org.apache.catalina.Globals;
 import org.apache.catalina.Host;
 import org.apache.catalina.Lifecycle;
 import org.apache.catalina.LifecycleEvent;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.LifecycleListener;
 import org.apache.catalina.Realm;
-import org.apache.catalina.Server;
 import org.apache.catalina.Service;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
@@ -88,9 +87,22 @@ public class StandardEngine extends ContainerBase implements Engine {
 
 
     /**
+     * The descriptive information string for this implementation.
+     */
+    private static final String info =
+        "org.apache.catalina.core.StandardEngine/1.0";
+
+
+    /**
      * The <code>Service</code> that owns this Engine, if any.
      */
     private Service service = null;
+
+    /** Allow the base dir to be specified explicitly for
+     * each engine. In time we should stop using catalina.base property -
+     * otherwise we loose some flexibility.
+     */
+    private String baseDir = null;
 
     /**
      * The JVM Route ID for this Tomcat instance. All Route ID's must be unique
@@ -103,7 +115,7 @@ public class StandardEngine extends ContainerBase implements Engine {
      * the intended host and context.
      */
     private final AtomicReference<AccessLog> defaultAccessLog =
-        new AtomicReference<>();
+        new AtomicReference<AccessLog>();
 
     // ------------------------------------------------------------- Properties
 
@@ -117,7 +129,7 @@ public class StandardEngine extends ContainerBase implements Engine {
     public Realm getRealm() {
         Realm configured = super.getRealm();
         // If no set realm has been called - default to NullRealm
-        // This can be overridden at engine, context and host level
+        // This can be overridden at engine, context and host level  
         if (configured == null) {
             configured = new NullRealm();
             this.setRealm(configured);
@@ -131,7 +143,9 @@ public class StandardEngine extends ContainerBase implements Engine {
      */
     @Override
     public String getDefaultHost() {
-        return defaultHost;
+
+        return (defaultHost);
+
     }
 
 
@@ -153,7 +167,7 @@ public class StandardEngine extends ContainerBase implements Engine {
                                    this.defaultHost);
 
     }
-
+    
 
     /**
      * Set the cluster-wide unique identifier for this Engine.
@@ -182,7 +196,9 @@ public class StandardEngine extends ContainerBase implements Engine {
      */
     @Override
     public Service getService() {
-        return this.service;
+
+        return (this.service);
+
     }
 
 
@@ -194,6 +210,20 @@ public class StandardEngine extends ContainerBase implements Engine {
     @Override
     public void setService(Service service) {
         this.service = service;
+    }
+
+    public String getBaseDir() {
+        if( baseDir==null ) {
+            baseDir=System.getProperty(Globals.CATALINA_BASE_PROP);
+        }
+        if( baseDir==null ) {
+            baseDir=System.getProperty(Globals.CATALINA_HOME_PROP);
+        }
+        return baseDir;
+    }
+
+    public void setBaseDir(String baseDir) {
+        this.baseDir = baseDir;
     }
 
     // --------------------------------------------------------- Public Methods
@@ -215,6 +245,18 @@ public class StandardEngine extends ContainerBase implements Engine {
 
     }
 
+
+    /**
+     * Return descriptive information about this Container implementation and
+     * the corresponding version number, in the format
+     * <code>&lt;description&gt;/&lt;version&gt;</code>.
+     */
+    @Override
+    public String getInfo() {
+
+        return (info);
+
+    }
 
     /**
      * Disallow any attempt to set a parent for this Container, since an
@@ -249,7 +291,7 @@ public class StandardEngine extends ContainerBase implements Engine {
      */
     @Override
     protected synchronized void startInternal() throws LifecycleException {
-
+        
         // Log our server identification information
         if(log.isInfoEnabled())
             log.info( "Starting Servlet Engine: " + ServerInfo.getServerInfo());
@@ -258,6 +300,19 @@ public class StandardEngine extends ContainerBase implements Engine {
         super.startInternal();
     }
 
+    
+    /**
+     * Return a String representation of this component.
+     */
+    @Override
+    public String toString() {
+
+        StringBuilder sb = new StringBuilder("StandardEngine[");
+        sb.append(getName());
+        sb.append("]");
+        return (sb.toString());
+
+    }
 
     /**
      * Override the default implementation. If no access log is defined for the
@@ -270,7 +325,7 @@ public class StandardEngine extends ContainerBase implements Engine {
             boolean useDefault) {
 
         boolean logged = false;
-
+        
         if (getAccessLog() != null) {
             accessLog.log(request, response, time);
             logged = true;
@@ -333,45 +388,12 @@ public class StandardEngine extends ContainerBase implements Engine {
     @Override
     public ClassLoader getParentClassLoader() {
         if (parentClassLoader != null)
-            return parentClassLoader;
+            return (parentClassLoader);
         if (service != null) {
-            return service.getParentClassLoader();
+            return (service.getParentClassLoader());
         }
-        return ClassLoader.getSystemClassLoader();
+        return (ClassLoader.getSystemClassLoader());
     }
-
-
-    @Override
-    public File getCatalinaBase() {
-        if (service != null) {
-            Server s = service.getServer();
-            if (s != null) {
-                File base = s.getCatalinaBase();
-                if (base != null) {
-                    return base;
-                }
-            }
-        }
-        // Fall-back
-        return super.getCatalinaBase();
-    }
-
-
-    @Override
-    public File getCatalinaHome() {
-        if (service != null) {
-            Server s = service.getServer();
-            if (s != null) {
-                File base = s.getCatalinaHome();
-                if (base != null) {
-                    return base;
-                }
-            }
-        }
-        // Fall-back
-        return super.getCatalinaHome();
-    }
-
 
     // -------------------- JMX registration  --------------------
 
@@ -379,13 +401,6 @@ public class StandardEngine extends ContainerBase implements Engine {
     protected String getObjectNameKeyProperties() {
         return "type=Engine";
     }
-
-
-    @Override
-    protected String getDomainInternal() {
-        return getName();
-    }
-
 
     // ----------------------------------------------------------- Inner classes
     protected static final class NoopAccessLog implements AccessLog {
@@ -399,7 +414,7 @@ public class StandardEngine extends ContainerBase implements Engine {
         public void setRequestAttributesEnabled(
                 boolean requestAttributesEnabled) {
             // NOOP
-
+            
         }
 
         @Override
@@ -408,14 +423,14 @@ public class StandardEngine extends ContainerBase implements Engine {
             return false;
         }
     }
-
+    
     protected static final class AccessLogListener
             implements PropertyChangeListener, LifecycleListener,
             ContainerListener {
 
-        private final StandardEngine engine;
-        private final Host host;
-        private final Context context;
+        private StandardEngine engine;
+        private Host host;
+        private Context context;
         private volatile boolean disabled = false;
 
         public AccessLogListener(StandardEngine engine, Host host,

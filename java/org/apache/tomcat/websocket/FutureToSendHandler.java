@@ -34,14 +34,26 @@ import org.apache.tomcat.util.res.StringManager;
  */
 class FutureToSendHandler implements Future<Void>, SendHandler {
 
-    private static final StringManager sm = StringManager.getManager(FutureToSendHandler.class);
+    private static final StringManager sm = StringManager.getManager(Constants.PACKAGE_NAME);
 
     private final CountDownLatch latch = new CountDownLatch(1);
     private final WsSession wsSession;
-    private volatile AtomicReference<SendResult> result = new AtomicReference<>(null);
+    private final boolean closeMessage;
+    private volatile AtomicReference<SendResult> result = new AtomicReference<SendResult>(null);
 
     public FutureToSendHandler(WsSession wsSession) {
+        this(wsSession, false);
+    }
+
+
+    public FutureToSendHandler(WsSession wsSession, boolean closeMessage) {
         this.wsSession = wsSession;
+        this.closeMessage = closeMessage;
+    }
+
+
+    public boolean isCloseMessage() {
+        return closeMessage;
     }
 
 

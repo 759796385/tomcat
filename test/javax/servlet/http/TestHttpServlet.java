@@ -39,16 +39,18 @@ public class TestHttpServlet extends TomcatBaseTest {
         Tomcat tomcat = getTomcatInstance();
 
         // No file system docBase required
-        StandardContext ctx = (StandardContext) tomcat.addContext("", null);
+        StandardContext ctx = (StandardContext)
+            tomcat.addContext("", null);
 
         // Map the test Servlet
         LargeBodyServlet largeBodyServlet = new LargeBodyServlet();
         Tomcat.addServlet(ctx, "largeBodyServlet", largeBodyServlet);
-        ctx.addServletMappingDecoded("/", "largeBodyServlet");
+        ctx.addServletMapping("/", "largeBodyServlet");
 
         tomcat.start();
 
-        Map<String,List<String>> resHeaders= new HashMap<>();
+        Map<String,List<String>> resHeaders=
+                new HashMap<String, List<String>>();
         int rc = headUrl("http://localhost:" + getPort() + "/", new ByteChunk(),
                resHeaders);
 
@@ -71,7 +73,7 @@ public class TestHttpServlet extends TomcatBaseTest {
     }
 
 
-    /*
+    /**
      * Verifies that the same Content-Length is returned for both GET and HEAD
      * operations when a Servlet includes content from another Servlet
      */
@@ -84,15 +86,15 @@ public class TestHttpServlet extends TomcatBaseTest {
 
         Bug57602ServletOuter outer = new Bug57602ServletOuter();
         Tomcat.addServlet(ctx, "Bug57602ServletOuter", outer);
-        ctx.addServletMappingDecoded("/outer", "Bug57602ServletOuter");
+        ctx.addServletMapping("/outer", "Bug57602ServletOuter");
 
         Bug57602ServletInner inner = new Bug57602ServletInner();
         Tomcat.addServlet(ctx, "Bug57602ServletInner", inner);
-        ctx.addServletMappingDecoded("/inner", "Bug57602ServletInner");
+        ctx.addServletMapping("/inner", "Bug57602ServletInner");
 
         tomcat.start();
 
-        Map<String,List<String>> resHeaders= new HashMap<>();
+        Map<String,List<String>> resHeaders= new HashMap<String,List<String>>();
         String path = "http://localhost:" + getPort() + "/outer";
         ByteChunk out = new ByteChunk();
 

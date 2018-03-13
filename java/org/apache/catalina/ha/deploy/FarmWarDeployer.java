@@ -27,6 +27,7 @@ import javax.management.ObjectName;
 import org.apache.catalina.Container;
 import org.apache.catalina.Context;
 import org.apache.catalina.Engine;
+import org.apache.catalina.Globals;
 import org.apache.catalina.Host;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.ha.ClusterDeployer;
@@ -54,20 +55,27 @@ import org.apache.tomcat.util.res.StringManager;
  * </ul>
  * Currently we only support deployment of WAR files since they are easier to
  * send across the wire.
- *
+ * 
+ * @author Filip Hanik
  * @author Peter Rossbach
  */
 public class FarmWarDeployer extends ClusterListener
         implements ClusterDeployer, FileChangeListener {
     /*--Static Variables----------------------------------------*/
     private static final Log log = LogFactory.getLog(FarmWarDeployer.class);
-    private static final StringManager sm = StringManager.getManager(FarmWarDeployer.class);
+    private static final StringManager sm =
+        StringManager.getManager(Constants.Package);
+
+    /**
+     * The descriptive information about this implementation.
+     */
+    private static final String info = "FarmWarDeployer/1.2";
 
     /*--Instance Variables--------------------------------------*/
     protected boolean started = false;
 
-    protected final HashMap<String, FileMessageFactory> fileFactories =
-        new HashMap<>();
+    protected HashMap<String, FileMessageFactory> fileFactories =
+        new HashMap<String, FileMessageFactory>();
 
     /**
      * Deployment directory.
@@ -114,6 +122,11 @@ public class FarmWarDeployer extends ClusterListener
     protected Host host = null;
 
     /**
+     * The host appBase.
+     */
+    protected File appBase = null;
+
+    /**
      * MBean server.
      */
     protected MBeanServer mBeanServer = null;
@@ -132,6 +145,17 @@ public class FarmWarDeployer extends ClusterListener
     public FarmWarDeployer() {
     }
 
+    /**
+     * Return descriptive information about this deployer implementation and the
+     * corresponding version number, in the format
+     * <code>&lt;description&gt;/&lt;version&gt;</code>.
+     */
+    public String getInfo() {
+
+        return (info);
+
+    }
+
     /*--Logic---------------------------------------------------*/
     @Override
     public void start() throws Exception {
@@ -143,12 +167,12 @@ public class FarmWarDeployer extends ClusterListener
             return ;
         }
         host = (Host) hcontainer;
-
+    
         // Check to correct engine and host setup
         Container econtainer = host.getParent();
         if(!(econtainer instanceof Engine)) {
             log.error(sm.getString("farmWarDeployer.hostParentEngine",
-                    host.getName()));
+                    host.getName())); 
             return ;
         }
         Engine engine = (Engine) econtainer;
@@ -170,7 +194,16 @@ public class FarmWarDeployer extends ClusterListener
             }
         }
 
-        configBase = host.getConfigBaseFile();
+        if (host.getXmlBase()!=null) {
+            configBase = getAbsolutePath(host.getXmlBase());
+        } else {
+            StringBuilder xmlDir = new StringBuilder("conf");
+            xmlDir.append('/');
+            xmlDir.append(engine.getName());
+            xmlDir.append('/');
+            xmlDir.append(host.getName());
+            configBase = getAbsolutePath(xmlDir.toString());
+        }
 
         // Retrieve the MBean server
         mBeanServer = Registry.getRegistry(null, null).getMBeanServer();
@@ -186,7 +219,7 @@ public class FarmWarDeployer extends ClusterListener
 
     /*
      * stop cluster wide deployments
-     *
+     * 
      * @see org.apache.catalina.ha.ClusterDeployer#stop()
      */
     @Override
@@ -203,10 +236,15 @@ public class FarmWarDeployer extends ClusterListener
             log.info(sm.getString("farmWarDeployer.stopped"));
     }
 
+    public void cleanDeployDir() {
+        throw new java.lang.UnsupportedOperationException(sm.getString(
+                "farmWarDeployer.notImplemented", "cleanDeployDir()"));
+    }
+
     /**
      * Callback from the cluster, when a message is received, The cluster will
      * broadcast it invoking the messageReceived on the receiver.
-     *
+     * 
      * @param msg
      *            ClusterMessage - the message received from the cluster
      */
@@ -287,12 +325,12 @@ public class FarmWarDeployer extends ClusterListener
     }
 
     /**
-     * Create factory for all transported war files
-     *
-     * @param msg The file
+     * create factory for all transported war files
+     * 
+     * @param msg
      * @return Factory for all app message (war files)
-     * @throws java.io.FileNotFoundException Missing file error
-     * @throws java.io.IOException Other IO error
+     * @throws java.io.FileNotFoundException
+     * @throws java.io.IOException
      */
     public synchronized FileMessageFactory getFactory(FileMessage msg)
             throws java.io.FileNotFoundException, java.io.IOException {
@@ -307,9 +345,9 @@ public class FarmWarDeployer extends ClusterListener
     }
 
     /**
-     * Remove file (war) from messages
-     *
-     * @param msg The file
+     * Remove file (war) from messages)
+     * 
+     * @param msg
      */
     public void removeFactory(FileMessage msg) {
         fileFactories.remove(msg.getFileName());
@@ -319,8 +357,9 @@ public class FarmWarDeployer extends ClusterListener
      * Before the cluster invokes messageReceived the cluster will ask the
      * receiver to accept or decline the message, In the future, when messages
      * get big, the accept method will only take a message header
-     *
-     * @param msg ClusterMessage
+     * 
+     * @param msg
+     *            ClusterMessage
      * @return boolean - returns true to indicate that messageReceived should be
      *         invoked. If false is returned, the messageReceived method will
      *         not be invoked.
@@ -338,14 +377,14 @@ public class FarmWarDeployer extends ClusterListener
      * If this application is successfully installed locally, a ContainerEvent
      * of type <code>INSTALL_EVENT</code> will be sent to all registered
      * listeners, with the newly created <code>Context</code> as an argument.
-     *
+     * 
      * @param contextName
      *            The context name to which this application should be installed
      *            (must be unique)
      * @param webapp
      *            A WAR file or unpacked directory structure containing the web
      *            application to be installed
-     *
+     * 
      * @exception IllegalArgumentException
      *                if the specified context name is malformed
      * @exception IllegalStateException
@@ -389,12 +428,12 @@ public class FarmWarDeployer extends ClusterListener
      * listeners, with the removed <code>Context</code> as an argument.
      * Deletes the web application war file and/or directory if they exist in
      * the Host's appBase.
-     *
+     * 
      * @param contextName
      *            The context name of the application to be removed
      * @param undeploy
      *            boolean flag to remove web application from server
-     *
+     * 
      * @exception IllegalArgumentException
      *                if the specified context name is malformed
      * @exception IllegalArgumentException
@@ -412,7 +451,7 @@ public class FarmWarDeployer extends ClusterListener
             Member localMember = getCluster().getLocalMember();
             UndeployMessage msg = new UndeployMessage(localMember, System
                     .currentTimeMillis(), "Undeploy:" + contextName + ":"
-                    + System.currentTimeMillis(), contextName);
+                    + System.currentTimeMillis(), contextName, undeploy);
             if (log.isDebugEnabled())
                 log.debug(sm.getString("farmWarDeployer.removeTxMsg", contextName));
             cluster.send(msg);
@@ -439,9 +478,9 @@ public class FarmWarDeployer extends ClusterListener
 
     }
 
-    /**
+    /*
      * Modification from watchDir war detected!
-     *
+     * 
      * @see org.apache.catalina.ha.deploy.FileChangeListener#fileModified(File)
      */
     @Override
@@ -476,9 +515,9 @@ public class FarmWarDeployer extends ClusterListener
         }
     }
 
-    /**
+    /*
      * War remove from watchDir
-     *
+     * 
      * @see org.apache.catalina.ha.deploy.FileChangeListener#fileRemoved(File)
      */
     @Override
@@ -495,9 +534,30 @@ public class FarmWarDeployer extends ClusterListener
     }
 
     /**
+     * Return a File object representing the "application root" directory for
+     * our associated Host.
+     */
+    protected File getAppBase() {
+
+        if (appBase != null) {
+            return appBase;
+        }
+
+        File file = new File(host.getAppBase());
+        if (!file.isAbsolute())
+            file = new File(System.getProperty(Globals.CATALINA_BASE_PROP), host
+                    .getAppBase());
+        try {
+            appBase = file.getCanonicalFile();
+        } catch (IOException e) {
+            appBase = file;
+        }
+        return (appBase);
+
+    }
+
+    /**
      * Invoke the remove method on the deployer.
-     * @param contextName The context to remove
-     * @throws Exception If an error occurs removing the context
      */
     protected void remove(String contextName) throws Exception {
         // TODO Handle remove also work dir content !
@@ -509,8 +569,8 @@ public class FarmWarDeployer extends ClusterListener
                         contextName));
             context.stop();
             String baseName = context.getBaseName();
-            File war = new File(host.getAppBaseFile(), baseName + ".war");
-            File dir = new File(host.getAppBaseFile(), baseName);
+            File war = new File(getAppBase(), baseName + ".war");
+            File dir = new File(getAppBase(), baseName);
             File xml = new File(configBase, baseName + ".xml");
             if (war.exists()) {
                 if (!war.delete()) {
@@ -532,7 +592,7 @@ public class FarmWarDeployer extends ClusterListener
     /**
      * Delete the specified directory, including all of its contents and
      * subdirectories recursively.
-     *
+     * 
      * @param dir
      *            File object representing the directory to be deleted
      */
@@ -557,9 +617,9 @@ public class FarmWarDeployer extends ClusterListener
         }
     }
 
-    /**
+    /*
      * Call watcher to check for deploy changes
-     *
+     * 
      * @see org.apache.catalina.ha.ClusterDeployer#backgroundProcess()
      */
     @Override
@@ -579,9 +639,7 @@ public class FarmWarDeployer extends ClusterListener
     /*--Deployer Operations ------------------------------------*/
 
     /**
-     * Check a context for deployment operations.
-     * @param name The context name
-     * @throws Exception Error invoking the deployer
+     * Invoke the check method on the deployer.
      */
     protected void check(String name) throws Exception {
         String[] params = { name };
@@ -590,10 +648,7 @@ public class FarmWarDeployer extends ClusterListener
     }
 
     /**
-     * Verified if a context is being services.
-     * @param name The context name
-     * @return <code>true</code> if the context is being serviced
-     * @throws Exception Error invoking the deployer
+     * Invoke the check method on the deployer.
      */
     protected boolean isServiced(String name) throws Exception {
         String[] params = { name };
@@ -604,9 +659,7 @@ public class FarmWarDeployer extends ClusterListener
     }
 
     /**
-     * Mark a context as being services.
-     * @param name The context name
-     * @throws Exception Error invoking the deployer
+     * Invoke the check method on the deployer.
      */
     protected void addServiced(String name) throws Exception {
         String[] params = { name };
@@ -615,9 +668,7 @@ public class FarmWarDeployer extends ClusterListener
     }
 
     /**
-     * Mark a context as no longer being serviced.
-     * @param name The context name
-     * @throws Exception Error invoking the deployer
+     * Invoke the check method on the deployer.
      */
     protected void removeServiced(String name) throws Exception {
         String[] params = { name };
@@ -697,15 +748,17 @@ public class FarmWarDeployer extends ClusterListener
     }
 
     /**
-     * @return the frequency of watcher checks.
+     * Return the frequency of watcher checks.
      */
     public int getProcessDeployFrequency() {
-        return this.processDeployFrequency;
+
+        return (this.processDeployFrequency);
+
     }
 
     /**
      * Set the watcher checks frequency.
-     *
+     * 
      * @param processExpiresFrequency
      *            the new manager checks frequency
      */
@@ -732,6 +785,8 @@ public class FarmWarDeployer extends ClusterListener
      * @return true, copy successful
      */
     protected boolean copy(File from, File to) {
+        java.io.FileInputStream is = null;
+        java.io.FileOutputStream os = null;
         try {
             if (!to.exists()) {
                 if (!to.createNewFile()) {
@@ -739,14 +794,8 @@ public class FarmWarDeployer extends ClusterListener
                     return false;
                 }
             }
-        } catch (IOException e) {
-            log.error(sm.getString("farmWarDeployer.fileCopyFail",
-                    from, to), e);
-            return false;
-        }
-
-        try (java.io.FileInputStream is = new java.io.FileInputStream(from);
-                java.io.FileOutputStream os = new java.io.FileOutputStream(to, false)) {
+            is = new java.io.FileInputStream(from);
+            os = new java.io.FileOutputStream(to, false);
             byte[] buf = new byte[4096];
             while (true) {
                 int len = is.read(buf);
@@ -758,6 +807,25 @@ public class FarmWarDeployer extends ClusterListener
             log.error(sm.getString("farmWarDeployer.fileCopyFail",
                     from, to), e);
             return false;
+        } finally {
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    log.debug(sm.getString(
+                            "farmWarDeployer.streamCannotBeClosed",
+                            "InputStream", from), e);
+                }
+            }
+            if (os != null) {
+                try {
+                    os.close();
+                } catch (IOException e) {
+                    log.debug(sm.getString(
+                            "farmWarDeployer.streamCannotBeClosed",
+                            "OutputStream", to), e);
+                }
+            }
         }
         return true;
     }
@@ -774,9 +842,9 @@ public class FarmWarDeployer extends ClusterListener
 
     private File getAbsolutePath(String path) {
         File dir = new File(path);
+        File base = new File(System.getProperty(Globals.CATALINA_BASE_PROP));
         if (!dir.isAbsolute()) {
-            dir = new File(getCluster().getContainer().getCatalinaBase(),
-                    dir.getPath());
+            dir = new File(base, dir.getPath());
         }
         try {
             dir = dir.getCanonicalFile();

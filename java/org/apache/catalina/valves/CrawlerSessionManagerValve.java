@@ -44,8 +44,8 @@ public class CrawlerSessionManagerValve extends ValveBase implements HttpSession
 
     private static final Log log = LogFactory.getLog(CrawlerSessionManagerValve.class);
 
-    private final Map<String, String> clientIpSessionId = new ConcurrentHashMap<>();
-    private final Map<String, String> sessionIdClientIp = new ConcurrentHashMap<>();
+    private final Map<String, String> clientIpSessionId = new ConcurrentHashMap<String, String>();
+    private final Map<String, String> sessionIdClientIp = new ConcurrentHashMap<String, String>();
 
     private String crawlerUserAgents = ".*[bB]ot.*|.*Yahoo! Slurp.*|.*Feedfetcher-Google.*";
     private Pattern uaPattern = null;
@@ -228,6 +228,12 @@ public class CrawlerSessionManagerValve extends ValveBase implements HttpSession
                 }
             }
         }
+    }
+
+
+    @Override
+    public void valueBound(HttpSessionBindingEvent event) {
+        // NOOP
     }
 
 

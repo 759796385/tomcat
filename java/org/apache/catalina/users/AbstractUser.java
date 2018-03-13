@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -64,7 +64,9 @@ public abstract class AbstractUser implements User {
      */
     @Override
     public String getFullName() {
-        return this.fullName;
+
+        return (this.fullName);
+
     }
 
 
@@ -75,7 +77,9 @@ public abstract class AbstractUser implements User {
      */
     @Override
     public void setFullName(String fullName) {
+
         this.fullName = fullName;
+
     }
 
 
@@ -93,7 +97,9 @@ public abstract class AbstractUser implements User {
      */
     @Override
     public String getPassword() {
-        return this.password;
+
+        return (this.password);
+
     }
 
 
@@ -106,7 +112,9 @@ public abstract class AbstractUser implements User {
      */
     @Override
     public void setPassword(String password) {
+
         this.password = password;
+
     }
 
 
@@ -123,7 +131,9 @@ public abstract class AbstractUser implements User {
      */
     @Override
     public String getUsername() {
-        return this.username;
+
+        return (this.username);
+
     }
 
 
@@ -135,7 +145,9 @@ public abstract class AbstractUser implements User {
      */
     @Override
     public void setUsername(String username) {
+
         this.username = username;
+
     }
 
 
@@ -220,7 +232,9 @@ public abstract class AbstractUser implements User {
      */
     @Override
     public String getName() {
-        return getUsername();
+
+        return (getUsername());
+
     }
 
 

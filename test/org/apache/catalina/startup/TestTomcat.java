@@ -23,6 +23,11 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.naming.InitialContext;
@@ -42,11 +47,12 @@ import org.apache.catalina.LifecycleEvent;
 import org.apache.catalina.LifecycleListener;
 import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.core.StandardHost;
+import org.apache.catalina.deploy.ContextEnvironment;
+import org.apache.catalina.deploy.ContextResourceLink;
 import org.apache.catalina.ha.context.ReplicatedContext;
+import org.apache.catalina.realm.GenericPrincipal;
+import org.apache.catalina.realm.RealmBase;
 import org.apache.tomcat.util.buf.ByteChunk;
-import org.apache.tomcat.util.descriptor.web.ContextEnvironment;
-import org.apache.tomcat.util.descriptor.web.ContextResourceLink;
-import org.apache.tomcat.websocket.server.WsContextListener;
 
 public class TestTomcat extends TomcatBaseTest {
 
@@ -130,17 +136,31 @@ public class TestTomcat extends TomcatBaseTest {
                 // Read some content from the resource
                 URLConnection conn = url.openConnection();
 
+                InputStream is = null;
+                Reader reader = null;
                 char cbuf[] = new char[20];
                 int read = 0;
-                try (InputStream is = conn.getInputStream();
-                        Reader reader = new InputStreamReader(is)) {
+                try {
+                    is = conn.getInputStream();
+                    reader = new InputStreamReader(is);
                     while (read < 20) {
                         int len = reader.read(cbuf, read, cbuf.length - read);
                         res.getWriter().write(cbuf, read, len);
                         read = read + len;
                     }
+                } finally {
+                    if (reader != null) {
+                        try { reader.close(); } catch(IOException ioe) {/*Ignore*/}
+                    }
+                    if (is != null) {
+                        try { is.close(); } catch(IOException ioe) {/*Ignore*/}
+                    }
                 }
+
+
             }
+
+
         }
     }
 
@@ -172,7 +192,47 @@ public class TestTomcat extends TomcatBaseTest {
     }
 
 
-    /*
+    /**
+     * Simple Realm that uses a configurable {@link Map} to link user names and
+     * passwords.
+     */
+    public static final class MapRealm extends RealmBase {
+        private Map<String,String> users = new HashMap<String,String>();
+        private Map<String,List<String>> roles =
+            new HashMap<String,List<String>>();
+
+        public void addUser(String username, String password) {
+            users.put(username, password);
+        }
+
+        public void addUserRole(String username, String role) {
+            List<String> userRoles = roles.get(username);
+            if (userRoles == null) {
+                userRoles = new ArrayList<String>();
+                roles.put(username, userRoles);
+            }
+            userRoles.add(role);
+        }
+
+        @Override
+        protected String getName() {
+            return "MapRealm";
+        }
+
+        @Override
+        protected String getPassword(String username) {
+            return users.get(username);
+        }
+
+        @Override
+        protected Principal getPrincipal(String username) {
+            return new GenericPrincipal(username, getPassword(username),
+                    roles.get(username));
+        }
+
+    }
+
+    /**
      * Start tomcat with a single context and one
      * servlet - all programmatic, no server.xml or
      * web.xml used.
@@ -185,9 +245,11 @@ public class TestTomcat extends TomcatBaseTest {
 
         // No file system docBase required
         Context ctx = tomcat.addContext("", null);
+        // You can customize the context by calling
+        // its API
 
         Tomcat.addServlet(ctx, "myServlet", new HelloWorld());
-        ctx.addServletMappingDecoded("/", "myServlet");
+        ctx.addServletMapping("/", "myServlet");
 
         tomcat.start();
 
@@ -201,9 +263,8 @@ public class TestTomcat extends TomcatBaseTest {
 
         File appDir = new File(getBuildDirectory(), "webapps/examples");
         // app dir is relative to server home
-        Context ctxt = tomcat.addWebapp(
-                null, "/examples", appDir.getAbsolutePath());
-        ctxt.addApplicationListener(WsContextListener.class.getName());
+        tomcat.addWebapp(null, "/examples", appDir.getAbsolutePath());
+
         tomcat.start();
 
         ByteChunk res = getUrl("http://localhost:" + getPort() +
@@ -218,9 +279,7 @@ public class TestTomcat extends TomcatBaseTest {
 
         File appDir = new File(getBuildDirectory(), "webapps/examples");
         // app dir is relative to server home
-        Context ctxt = tomcat.addWebapp(
-                null, "/examples", appDir.getAbsolutePath());
-        ctxt.addApplicationListener(WsContextListener.class.getName());
+        tomcat.addWebapp(null, "/examples", appDir.getAbsolutePath());
 
         tomcat.start();
 
@@ -236,9 +295,11 @@ public class TestTomcat extends TomcatBaseTest {
 
         // No file system docBase required
         Context ctx = tomcat.addContext("", null);
+        // You can customize the context by calling
+        // its API
 
         Tomcat.addServlet(ctx, "myServlet", new HelloWorldSession());
-        ctx.addServletMappingDecoded("/", "myServlet");
+        ctx.addServletMapping("/", "myServlet");
 
         tomcat.start();
 
@@ -257,7 +318,7 @@ public class TestTomcat extends TomcatBaseTest {
      }
 
 
-    /*
+    /**
      * Test for enabling JNDI.
      */
     @Test
@@ -266,6 +327,8 @@ public class TestTomcat extends TomcatBaseTest {
 
         // No file system docBase required
         Context ctx = tomcat.addContext("", null);
+
+        // You can customise the context by calling its API
 
         // Enable JNDI - it is disabled by default
         tomcat.enableNaming();
@@ -277,7 +340,7 @@ public class TestTomcat extends TomcatBaseTest {
         ctx.getNamingResources().addEnvironment(environment);
 
         Tomcat.addServlet(ctx, "jndiServlet", new HelloWorldJndi());
-        ctx.addServletMappingDecoded("/", "jndiServlet");
+        ctx.addServletMapping("/", "jndiServlet");
 
         tomcat.start();
 
@@ -285,7 +348,7 @@ public class TestTomcat extends TomcatBaseTest {
         Assert.assertEquals("Hello, Tomcat User", res.toString());
     }
 
-    /*
+    /**
      * Test for enabling JNDI and using global resources.
      */
     @Test
@@ -294,6 +357,8 @@ public class TestTomcat extends TomcatBaseTest {
 
         // No file system docBase required
         Context ctx = tomcat.addContext("", null);
+
+        // You can customise the context by calling its API
 
         // Enable JNDI - it is disabled by default
         tomcat.enableNaming();
@@ -311,7 +376,7 @@ public class TestTomcat extends TomcatBaseTest {
         ctx.getNamingResources().addResourceLink(link);
 
         Tomcat.addServlet(ctx, "jndiServlet", new HelloWorldJndi());
-        ctx.addServletMappingDecoded("/", "jndiServlet");
+        ctx.addServletMapping("/", "jndiServlet");
 
         tomcat.start();
 
@@ -320,7 +385,7 @@ public class TestTomcat extends TomcatBaseTest {
     }
 
 
-    /*
+    /**
      * Test for https://bz.apache.org/bugzilla/show_bug.cgi?id=47866
      */
     @Test
@@ -333,10 +398,9 @@ public class TestTomcat extends TomcatBaseTest {
         // app dir is relative to server home
         Context ctx =
             tomcat.addWebapp(null, "/examples", appDir.getAbsolutePath());
-        ctx.addApplicationListener(WsContextListener.class.getName());
 
         Tomcat.addServlet(ctx, "testGetResource", new GetResource());
-        ctx.addServletMappingDecoded("/testGetResource", "testGetResource");
+        ctx.addServletMapping("/testGetResource", "testGetResource");
 
         tomcat.start();
 
@@ -376,7 +440,7 @@ public class TestTomcat extends TomcatBaseTest {
 
         InitCount initCount = new InitCount();
         Tomcat.addServlet(ctx, "initCount", initCount);
-        ctx.addServletMappingDecoded("/", "initCount");
+        ctx.addServletMapping("/", "initCount");
 
         tomcat.start();
 
@@ -534,7 +598,7 @@ public class TestTomcat extends TomcatBaseTest {
 
         tomcat.getHost().setConfigClass(CustomContextConfig.class.getName());
 
-        File docBase = new File("test/webapp");
+        File docBase = new File("test/webapp-3.0");
         tomcat.addWebapp("/test", docBase.getAbsolutePath());
 
         tomcat.start();

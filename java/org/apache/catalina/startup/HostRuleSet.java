@@ -5,19 +5,23 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+
 package org.apache.catalina.startup;
 
+
 import org.apache.tomcat.util.digester.Digester;
-import org.apache.tomcat.util.digester.RuleSet;
+import org.apache.tomcat.util.digester.RuleSetBase;
+
 
 /**
  * <p><strong>RuleSet</strong> for processing the contents of a
@@ -27,24 +31,29 @@ import org.apache.tomcat.util.digester.RuleSet;
  *
  * @author Craig R. McClanahan
  */
-public class HostRuleSet implements RuleSet {
+public class HostRuleSet extends RuleSetBase {
+
 
     // ----------------------------------------------------- Instance Variables
+
 
     /**
      * The matching pattern prefix to use for recognizing our elements.
      */
-    protected final String prefix;
+    protected String prefix = null;
 
 
     // ------------------------------------------------------------ Constructor
+
 
     /**
      * Construct an instance of this <code>RuleSet</code> with the default
      * matching pattern prefix.
      */
     public HostRuleSet() {
+
         this("");
+
     }
 
 
@@ -56,11 +65,16 @@ public class HostRuleSet implements RuleSet {
      *  trailing slash character)
      */
     public HostRuleSet(String prefix) {
+
+        super();
+        this.namespaceURI = null;
         this.prefix = prefix;
+
     }
 
 
     // --------------------------------------------------------- Public Methods
+
 
     /**
      * <p>Add the set of Rule instances defined in this RuleSet to the
@@ -118,5 +132,8 @@ public class HostRuleSet implements RuleSet {
         digester.addSetNext(prefix + "Host/Valve",
                             "addValve",
                             "org.apache.catalina.Valve");
+
     }
+
+
 }

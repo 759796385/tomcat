@@ -35,7 +35,7 @@ public class TestPersistentManager {
         Context context = new TesterContext();
         context.setParent(host);
 
-        manager.setContext(context);
+        manager.setContainer(context);
 
         manager.setMaxActiveSessions(2);
         manager.setMinIdleSwap(0);

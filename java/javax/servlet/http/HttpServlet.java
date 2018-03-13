@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.text.MessageFormat;
 import java.util.Enumeration;
@@ -71,6 +70,8 @@ import javax.servlet.ServletResponse;
  * <a href="http://java.sun.com/Series/Tutorial/java/threads/multithreaded.html">
  * Java Tutorial on Multithreaded Programming</a> for more
  * information on handling multiple threads in a Java program.
+ *
+ * @author  Various
  */
 public abstract class HttpServlet extends GenericServlet {
 
@@ -89,7 +90,7 @@ public abstract class HttpServlet extends GenericServlet {
 
     private static final String LSTRING_FILE =
         "javax.servlet.http.LocalStrings";
-    private static final ResourceBundle lStrings =
+    private static ResourceBundle lStrings =
         ResourceBundle.getBundle(LSTRING_FILE);
 
 
@@ -490,18 +491,6 @@ public abstract class HttpServlet extends GenericServlet {
         boolean ALLOW_TRACE = true;
         boolean ALLOW_OPTIONS = true;
 
-        // Tomcat specific hack to see if TRACE is allowed
-        Class<?> clazz = null;
-        try {
-            clazz = Class.forName("org.apache.catalina.connector.RequestFacade");
-            Method getAllowTrace = clazz.getMethod("getAllowTrace", (Class<?>[]) null);
-            ALLOW_TRACE = ((Boolean) getAllowTrace.invoke(req, (Object[]) null)).booleanValue();
-        } catch (ClassNotFoundException | NoSuchMethodException | SecurityException |
-                IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            // Ignore. Not running on Tomcat. TRACE is always allowed.
-        }
-        // End of Tomcat specific hack
-
         for (int i=0; i<methods.length; i++) {
             Method m = methods[i];
 
@@ -593,6 +582,7 @@ public abstract class HttpServlet extends GenericServlet {
         ServletOutputStream out = resp.getOutputStream();
         out.print(buffer.toString());
         out.close();
+        return;
     }
 
 
@@ -751,9 +741,9 @@ public abstract class HttpServlet extends GenericServlet {
  */
 // file private
 class NoBodyResponse extends HttpServletResponseWrapper {
-    private final NoBodyOutputStream noBody;
-    private PrintWriter writer;
-    private boolean didSetContentLength;
+    private NoBodyOutputStream                noBody;
+    private PrintWriter                        writer;
+    private boolean                        didSetContentLength;
 
     // file private
     NoBodyResponse(HttpServletResponse r) {
@@ -777,12 +767,6 @@ class NoBodyResponse extends HttpServletResponseWrapper {
     @Override
     public void setContentLength(int len) {
         super.setContentLength(len);
-        didSetContentLength = true;
-    }
-
-    @Override
-    public void setContentLengthLong(long len) {
-        super.setContentLengthLong(len);
         didSetContentLength = true;
     }
 
@@ -844,10 +828,10 @@ class NoBodyOutputStream extends ServletOutputStream {
 
     private static final String LSTRING_FILE =
         "javax.servlet.http.LocalStrings";
-    private static final ResourceBundle lStrings =
+    private static ResourceBundle lStrings =
         ResourceBundle.getBundle(LSTRING_FILE);
 
-    private int contentLength = 0;
+    private int                contentLength = 0;
 
     // file private
     NoBodyOutputStream() {
@@ -882,16 +866,5 @@ class NoBodyOutputStream extends ServletOutputStream {
         }
 
         contentLength += len;
-    }
-
-    @Override
-    public boolean isReady() {
-        // TODO SERVLET 3.1
-        return false;
-    }
-
-    @Override
-    public void setWriteListener(javax.servlet.WriteListener listener) {
-        // TODO SERVLET 3.1
     }
 }

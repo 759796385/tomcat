@@ -26,10 +26,9 @@ public class SSIServletRequestUtil {
      * Return the relative path associated with this servlet. Taken from
      * DefaultServlet.java. Perhaps this should be put in
      * org.apache.catalina.util somewhere? Seems like it would be widely used.
-     *
+     * 
      * @param request
      *            The servlet request we are processing
-     * @return the relative path
      */
     public static String getRelativePath(HttpServletRequest request) {
         // Are we being processed by a RequestDispatcher.include()?
@@ -41,7 +40,7 @@ public class SSIServletRequestUtil {
                 result = (String)request.getAttribute(
                         RequestDispatcher.INCLUDE_SERVLET_PATH);
             if ((result == null) || (result.equals(""))) result = "/";
-            return result;
+            return (result);
         }
         // No, extract the desired path directly from the request
         String result = request.getPathInfo();

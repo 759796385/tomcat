@@ -24,7 +24,7 @@ import java.util.Set;
  * @since Servlet 3.0
  */
 public interface ServletRegistration extends Registration {
-
+    
     /**
      * TODO
      * @param urlPatterns The URL patterns that this Servlet should be mapped to
@@ -34,16 +34,16 @@ public interface ServletRegistration extends Registration {
      *                                  already been initialised
      */
     public Set<String> addMapping(String... urlPatterns);
-
+    
     public Collection<String> getMappings();
-
+    
     public String getRunAsRole();
-
+    
     public static interface Dynamic
     extends ServletRegistration, Registration.Dynamic {
         public void setLoadOnStartup(int loadOnStartup);
-        public Set<String> setServletSecurity(ServletSecurityElement constraint);
         public void setMultipartConfig(MultipartConfigElement multipartConfig);
         public void setRunAsRole(String roleName);
+        public Set<String> setServletSecurity(ServletSecurityElement constraint);
     }
 }

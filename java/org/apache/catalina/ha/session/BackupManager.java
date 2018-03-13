@@ -17,6 +17,7 @@
 package org.apache.catalina.ha.session;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.catalina.DistributedManager;
@@ -33,6 +34,7 @@ import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.res.StringManager;
 
 /**
+ *@author Filip Hanik
  *@version 1.0
  */
 public class BackupManager extends ClusterManagerBase
@@ -43,9 +45,16 @@ public class BackupManager extends ClusterManagerBase
     /**
      * The string manager for this package.
      */
-    protected static final StringManager sm = StringManager.getManager(BackupManager.class);
+    protected static final StringManager sm = StringManager.getManager(Constants.Package);
 
-    protected static final long DEFAULT_REPL_TIMEOUT = 15000;//15 seconds
+    protected static long DEFAULT_REPL_TIMEOUT = 15000;//15 seconds
+
+    /**
+     * Set to true if we don't want the sessions to expire on shutdown
+     * @deprecated  Unused - will be removed in Tomcat 8.0.x
+     */
+    @Deprecated
+    protected boolean mExpireSessionsOnShutdown = true;
 
     /**
      * The name of this manager
@@ -89,6 +98,25 @@ public class BackupManager extends ClusterManagerBase
     public void messageDataReceived(ClusterMessage msg) {
     }
 
+    /**
+     * @deprecated  Unused - will be removed in Tomcat 8.0.x
+     */
+    @Deprecated
+    public void setExpireSessionsOnShutdown(boolean expireSessionsOnShutdown)
+    {
+        mExpireSessionsOnShutdown = expireSessionsOnShutdown;
+    }
+
+    /**
+     * @deprecated  Unused - will be removed in Tomcat 8.0.x
+     */
+    @Deprecated
+    public boolean getExpireSessionsOnShutdown()
+    {
+        return mExpireSessionsOnShutdown;
+    }
+
+
     @Override
     public ClusterMessage requestCompleted(String sessionId) {
         if (!getState().isAvailable()) return null;
@@ -103,8 +131,8 @@ public class BackupManager extends ClusterManagerBase
 // OVERRIDE THESE METHODS TO IMPLEMENT THE REPLICATION
 //=========================================================================
     @Override
-    public void objectMadePrimary(Object key, Object value) {
-        if (value instanceof DeltaSession) {
+    public void objectMadePrimay(Object key, Object value) {
+        if (value!=null && value instanceof DeltaSession) {
             DeltaSession session = (DeltaSession)value;
             synchronized (session) {
                 session.access();
@@ -144,9 +172,10 @@ public class BackupManager extends ClusterManagerBase
 
         try {
             if (cluster == null) throw new LifecycleException(sm.getString("backupManager.noCluster", getName()));
-            LazyReplicatedMap<String,Session> map = new LazyReplicatedMap<>(
-                    this, cluster.getChannel(), rpcTimeout, getMapName(),
-                    getClassLoaders(), terminateOnStartFailure);
+            LazyReplicatedMap<String,Session> map =
+                    new LazyReplicatedMap<String,Session>(this,
+                            cluster.getChannel(), rpcTimeout, getMapName(),
+                            getClassLoaders(), terminateOnStartFailure);
             map.setChannelSendOptions(mapSendOptions);
             map.setAccessTimeout(accessTimeout);
             this.sessions = map;
@@ -200,24 +229,8 @@ public class BackupManager extends ClusterManagerBase
         this.mapSendOptions = mapSendOptions;
     }
 
-    public void setMapSendOptions(String mapSendOptions) {
-
-        int value = Channel.parseSendOptions(mapSendOptions);
-        if (value > 0) {
-            this.setMapSendOptions(value);
-        }
-    }
-
     public int getMapSendOptions() {
         return mapSendOptions;
-    }
-
-    /**
-     * returns the SendOptions as a comma separated list of names
-     * @return a comma separated list of the option names
-     */
-    public String getMapSendOptionsName(){
-        return Channel.getSendOptionsAsString(mapSendOptions);
     }
 
     public void setRpcTimeout(long rpcTimeout) {
@@ -253,6 +266,7 @@ public class BackupManager extends ClusterManagerBase
     public ClusterManager cloneFromTemplate() {
         BackupManager result = new BackupManager();
         clone(result);
+        result.mExpireSessionsOnShutdown = mExpireSessionsOnShutdown;
         result.mapSendOptions = mapSendOptions;
         result.rpcTimeout = rpcTimeout;
         result.terminateOnStartFailure = terminateOnStartFailure;
@@ -269,11 +283,12 @@ public class BackupManager extends ClusterManagerBase
 
     @Override
     public Set<String> getSessionIdsFull() {
-        Set<String> sessionIds = new HashSet<>();
+        Set<String> sessionIds = new HashSet<String>();
         LazyReplicatedMap<String,Session> map =
                 (LazyReplicatedMap<String,Session>)sessions;
-        for (String id : map.keySetFull()) {
-            sessionIds.add(id);
+        Iterator<String> keys = map.keySetFull().iterator();
+        while (keys.hasNext()) {
+            sessionIds.add(keys.next());
         }
         return sessionIds;
     }

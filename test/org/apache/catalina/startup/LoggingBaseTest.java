@@ -17,22 +17,16 @@
 package org.apache.catalina.startup;
 
 import java.io.File;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.LogManager;
 
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 
-import org.apache.juli.ClassLoaderLogManager;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
@@ -55,7 +49,7 @@ public abstract class LoggingBaseTest {
 
     private File tempDir;
 
-    private List<File> deleteOnTearDown = new ArrayList<>();
+    private List<File> deleteOnTearDown = new ArrayList<File>();
 
     /**
      * Provides name of the currently executing test method.
@@ -63,7 +57,7 @@ public abstract class LoggingBaseTest {
     @Rule
     public final TestName testName = new TestName();
 
-    /*
+    /**
      * Helper method that returns the directory where Tomcat build resides. It
      * is used to access resources that are part of default Tomcat deployment.
      * E.g. the examples webapp.
@@ -73,7 +67,7 @@ public abstract class LoggingBaseTest {
                 "output/build"));
     }
 
-    /*
+    /**
      * Helper method that returns the path of the temporary directory used by
      * the test runs. The directory is configured during {@link #setUp()}.
      *
@@ -105,24 +99,21 @@ public abstract class LoggingBaseTest {
         // Configure logging
         System.setProperty("java.util.logging.manager",
                 "org.apache.juli.ClassLoaderLogManager");
-        System.setProperty("java.util.logging.config.file",
-                new File(System.getProperty("tomcat.test.basedir"),
-                        "conf/logging.properties").toString());
-
+        System.setProperty("java.util.logging.config.file", new File(
+                getBuildDirectory(), "conf/logging.properties").toString());
     }
 
     @Before
     public void setUp() throws Exception {
         // Create catalina.base directory
-        File tempBase = new File(System.getProperty("tomcat.test.temp", "output/tmp"));
-        if (!tempBase.mkdirs() && !tempBase.isDirectory()) {
-            Assert.fail("Unable to create base temporary directory for tests");
+        tempDir = new File(System.getProperty("tomcat.test.temp", "output/tmp"));
+        if (!tempDir.mkdirs() && !tempDir.isDirectory()) {
+            Assert.fail("Unable to create temporary directory for test");
         }
-        Path tempBasePath = FileSystems.getDefault().getPath(tempBase.getAbsolutePath());
-        tempDir = Files.createTempDirectory(tempBasePath, "test").toFile();
 
         System.setProperty("catalina.base", tempDir.getAbsolutePath());
 
+        // Get log instance after logging has been configured
         log = LogFactory.getLog(getClass());
         log.info("Starting test case [" + testName.getMethodName() + "]");
     }
@@ -133,17 +124,5 @@ public abstract class LoggingBaseTest {
             ExpandWar.delete(file);
         }
         deleteOnTearDown.clear();
-
-        ExpandWar.deleteDir(tempDir);
-    }
-
-    @AfterClass
-    public static void tearDownPerTestClass() throws Exception {
-        LogManager logManager = LogManager.getLogManager();
-        if (logManager instanceof ClassLoaderLogManager) {
-            ((ClassLoaderLogManager) logManager).shutdown();
-        } else {
-            logManager.reset();
-        }
     }
 }

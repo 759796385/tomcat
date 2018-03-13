@@ -33,10 +33,8 @@ public class DefaultServerEndpointConfigurator
     public <T> T getEndpointInstance(Class<T> clazz)
             throws InstantiationException {
         try {
-            return clazz.getConstructor().newInstance();
-        } catch (InstantiationException e) {
-            throw e;
-        } catch (ReflectiveOperationException e) {
+            return clazz.newInstance();
+        } catch (IllegalAccessException e) {
             InstantiationException ie = new InstantiationException();
             ie.initCause(e);
             throw ie;
@@ -60,11 +58,11 @@ public class DefaultServerEndpointConfigurator
     @Override
     public List<Extension> getNegotiatedExtensions(List<Extension> installed,
             List<Extension> requested) {
-        Set<String> installedNames = new HashSet<>();
+        Set<String> installedNames = new HashSet<String>();
         for (Extension e : installed) {
             installedNames.add(e.getName());
         }
-        List<Extension> result = new ArrayList<>();
+        List<Extension> result = new ArrayList<Extension>();
         for (Extension request : requested) {
             if (installedNames.contains(request.getName())) {
                 result.add(request);

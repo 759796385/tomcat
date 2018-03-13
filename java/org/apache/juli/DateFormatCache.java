@@ -49,9 +49,9 @@ public class DateFormatCache {
     private final String format;
 
     /* Number of cached entries */
-    private final int cacheSize;
+    private int cacheSize = 0;
 
-    private final Cache cache;
+    private Cache cache;
 
     /**
      * Replace the millisecond formatting character 'S' by
@@ -95,10 +95,6 @@ public class DateFormatCache {
         return cache.getFormat(time);
     }
 
-    public String getTimeFormat() {
-        return format;
-    }
-
     private class Cache {
 
         /* Second formatted in most recent invocation */
@@ -122,6 +118,9 @@ public class DateFormatCache {
 
         private Cache(Cache parent) {
             cache = new String[cacheSize];
+            for (int i = 0; i < cacheSize; i++) {
+                cache[i] = null;
+            }
             formatter = new SimpleDateFormat(format, Locale.US);
             formatter.setTimeZone(TimeZone.getDefault());
             this.parent = parent;

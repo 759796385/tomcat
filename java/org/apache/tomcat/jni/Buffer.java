@@ -77,14 +77,12 @@ public class Buffer {
     /**
      * Returns the memory address of the ByteBuffer.
      * @param buf Previously allocated ByteBuffer.
-     * @return the memory address
      */
     public static native long address(ByteBuffer buf);
 
     /**
      * Returns the allocated memory size of the ByteBuffer.
      * @param buf Previously allocated ByteBuffer.
-     * @return the size
      */
     public static native long size(ByteBuffer buf);
 

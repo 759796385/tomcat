@@ -44,7 +44,7 @@ import javax.servlet.http.HttpSession;
  */
 public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
 
-    private final Set<String> entryPoints = new HashSet<>();
+    private final Set<String> entryPoints = new HashSet<String>();
 
     private int nonceCacheSize = 5;
 
@@ -116,7 +116,7 @@ public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
             }
 
             if (nonceCache == null) {
-                nonceCache = new LruCache<>(nonceCacheSize);
+                nonceCache = new LruCache<String>(nonceCacheSize);
                 if (session == null) {
                     session = req.getSession(true);
                 }
@@ -178,7 +178,7 @@ public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
         private String addNonce(String url) {
 
             if ((url == null) || (nonce == null)) {
-                return url;
+                return (url);
             }
 
             String path = url;
@@ -205,7 +205,7 @@ public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
             sb.append('=');
             sb.append(nonce);
             sb.append(anchor);
-            return sb.toString();
+            return (sb.toString());
         }
     }
 

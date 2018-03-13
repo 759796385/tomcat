@@ -33,8 +33,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import org.junit.Assert;
-
 /**
  * Simple client for unit testing. It isn't robust, it isn't secure and
  * should not be used as the basis for production code. Its only purpose
@@ -51,10 +49,9 @@ public abstract class SimpleHttpClient {
     public static final String INFO_100 = "HTTP/1.1 100 ";
     public static final String OK_200 = "HTTP/1.1 200 ";
     public static final String REDIRECT_302 = "HTTP/1.1 302 ";
-    public static final String REDIRECT_303 = "HTTP/1.1 303 ";
     public static final String FAIL_400 = "HTTP/1.1 400 ";
+    public static final String FORBIDDEN_403 = "HTTP/1.1 403 ";
     public static final String FAIL_404 = "HTTP/1.1 404 ";
-    public static final String FAIL_405 = "HTTP/1.1 405 ";
     public static final String TIMEOUT_408 = "HTTP/1.1 408 ";
     public static final String FAIL_413 = "HTTP/1.1 413 ";
     public static final String FAIL_417 = "HTTP/1.1 417 ";
@@ -94,7 +91,7 @@ public abstract class SimpleHttpClient {
     private int requestPause = 1000;
 
     private String responseLine;
-    private List<String> responseHeaders = new ArrayList<>();
+    private List<String> responseHeaders = new ArrayList<String>();
     private String sessionId;
     private boolean useContentLength;
     private int contentLength;
@@ -301,8 +298,7 @@ public abstract class SimpleHttpClient {
         if (wantBody) {
             if (useContentLength && (contentLength > -1)) {
                 char[] body = new char[contentLength];
-                int read = reader.read(body);
-                Assert.assertEquals(contentLength, read);
+                reader.read(body);
                 builder.append(body);
             }
             else {
@@ -327,7 +323,7 @@ public abstract class SimpleHttpClient {
      * @see #getResponseBodyUriElements()
      */
     public void extractUriElements() {
-        bodyUriElements = new ArrayList<>();
+        bodyUriElements = new ArrayList<String>();
         if (responseBody.length() > 0) {
             int ix = 0;
             while ((ix = extractUriElement(responseBody, ix, RESOURCE_TAG)) > 0){
@@ -394,68 +390,56 @@ public abstract class SimpleHttpClient {
 
     public void resetResponse() {
         responseLine = null;
-        responseHeaders = new ArrayList<>();
+        responseHeaders = new ArrayList<String>();
         responseBody = null;
     }
 
-    public boolean responseLineStartsWith(String expected) {
-        String line = getResponseLine();
-        if (line == null) {
-            return false;
-        }
-        return line.startsWith(expected);
-    }
-
     public boolean isResponse100() {
-        return responseLineStartsWith(INFO_100);
+        return getResponseLine().startsWith(INFO_100);
     }
 
     public boolean isResponse200() {
-        return responseLineStartsWith(OK_200);
+        return getResponseLine().startsWith(OK_200);
     }
 
     public boolean isResponse302() {
-        return responseLineStartsWith(REDIRECT_302);
-    }
-
-    public boolean isResponse303() {
-        return responseLineStartsWith(REDIRECT_303);
+        return getResponseLine().startsWith(REDIRECT_302);
     }
 
     public boolean isResponse400() {
-        return responseLineStartsWith(FAIL_400);
+        return getResponseLine().startsWith(FAIL_400);
+    }
+
+    public boolean isResponse403() {
+        return getResponseLine().startsWith(FORBIDDEN_403);
     }
 
     public boolean isResponse404() {
-        return responseLineStartsWith(FAIL_404);
-    }
-
-    public boolean isResponse405() {
-        return responseLineStartsWith(FAIL_405);
+        return getResponseLine().startsWith(FAIL_404);
     }
 
     public boolean isResponse408() {
-        return responseLineStartsWith(TIMEOUT_408);
+        return getResponseLine().startsWith(TIMEOUT_408);
     }
 
     public boolean isResponse413() {
-        return responseLineStartsWith(FAIL_413);
+        return getResponseLine().startsWith(FAIL_413);
     }
 
     public boolean isResponse417() {
-        return responseLineStartsWith(FAIL_417);
+        return getResponseLine().startsWith(FAIL_417);
     }
 
     public boolean isResponse50x() {
-        return responseLineStartsWith(FAIL_50X);
+        return getResponseLine().startsWith(FAIL_50X);
     }
 
     public boolean isResponse500() {
-        return responseLineStartsWith(FAIL_500);
+        return getResponseLine().startsWith(FAIL_500);
     }
 
     public boolean isResponse501() {
-        return responseLineStartsWith(FAIL_501);
+        return getResponseLine().startsWith(FAIL_501);
     }
 
     public Socket getSocket() {

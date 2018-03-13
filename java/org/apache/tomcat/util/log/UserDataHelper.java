@@ -131,7 +131,7 @@ public class UserDataHelper {
     }
 
 
-    private enum Config {
+    private static enum Config {
         NONE,
         DEBUG_ALL,
         INFO_THEN_DEBUG,
@@ -141,9 +141,21 @@ public class UserDataHelper {
     /**
      * Log mode for the next log message.
      */
-    public enum Mode {
-        DEBUG,
-        INFO_THEN_DEBUG,
-        INFO
+    public static enum Mode {
+        DEBUG(false), INFO_THEN_DEBUG(true), INFO(false);
+
+        private final boolean fallToDebug;
+
+        Mode(boolean fallToDebug) {
+            this.fallToDebug = fallToDebug;
+        }
+
+        /**
+         * @deprecated Unused, removed in Tomcat 8.
+         */
+        @Deprecated
+        public boolean fallToDebug() {
+            return fallToDebug;
+        }
     }
 }

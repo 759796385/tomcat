@@ -24,44 +24,54 @@ import org.apache.catalina.tribes.util.StringManager;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
+/**
+ * <p>Title: </p>
+ *
+ * <p>Description: </p>
+ *
+ * <p>Company: </p>
+ *
+ * @author not attributable
+ * @version 1.0
+ */
 public abstract class PooledSender extends AbstractSender implements MultiPointSender {
-
+    
     private static final Log log = LogFactory.getLog(PooledSender.class);
     protected static final StringManager sm =
         StringManager.getManager(Constants.Package);
-
-    private final SenderQueue queue;
+    
+    private SenderQueue queue = null;
     private int poolSize = 25;
     private long maxWait = 3000;
     public PooledSender() {
         queue = new SenderQueue(this,poolSize);
     }
-
+    
     public abstract DataSender getNewDataSender();
-
+    
     public DataSender getSender() {
         return queue.getSender(getMaxWait());
     }
-
+    
     public void returnSender(DataSender sender) {
         sender.keepalive();
         queue.returnSender(sender);
     }
-
+    
     @Override
     public synchronized void connect() throws IOException {
         //do nothing, happens in the socket sender itself
         queue.open();
         setConnected(true);
     }
-
+    
     @Override
     public synchronized void disconnect() {
         queue.close();
         setConnected(false);
     }
-
-
+    
+    
     public int getInPoolSize() {
         return queue.getInPoolSize();
     }
@@ -122,8 +132,8 @@ public abstract class PooledSender extends AbstractSender implements MultiPointS
         public SenderQueue(PooledSender parent, int limit) {
             this.limit = limit;
             this.parent = parent;
-            notinuse = new java.util.LinkedList<>();
-            inuse = new java.util.LinkedList<>();
+            notinuse = new java.util.LinkedList<DataSender>();
+            inuse = new java.util.LinkedList<DataSender>();
         }
 
         /**
@@ -146,7 +156,7 @@ public abstract class PooledSender extends AbstractSender implements MultiPointS
         public int getInPoolSize() {
             return notinuse.size();
         }
-
+        
         public synchronized boolean checkIdleKeepAlive() {
             DataSender[] list = new DataSender[notinuse.size()];
             notinuse.toArray(list);
@@ -160,7 +170,7 @@ public abstract class PooledSender extends AbstractSender implements MultiPointS
         public synchronized DataSender getSender(long timeout) {
             long start = System.currentTimeMillis();
             while ( true ) {
-                if (!isOpen)throw new IllegalStateException(sm.getString("pooledSender.closed.queue"));
+                if (!isOpen)throw new IllegalStateException("Queue is closed");
                 DataSender sender = null;
                 if (notinuse.size() == 0 && inuse.size() < limit) {
                     sender = parent.getNewDataSender();
