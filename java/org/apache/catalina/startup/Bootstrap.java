@@ -53,7 +53,7 @@ public final class Bootstrap {
 
 
     /**
-     * Daemon object used by main.
+     * Daemon object used by main.  Bootstrap()
      */
     private static Bootstrap daemon = null;
 
@@ -66,23 +66,37 @@ public final class Bootstrap {
      */
     private Object catalinaDaemon = null;
 
-
+    //common loader 父加载器
     ClassLoader commonLoader = null;
+    //server loader  父加载器是common  用于加载容器下class
     ClassLoader catalinaLoader = null;
+    //shared loader 父加载器是common
     ClassLoader sharedLoader = null;
 
-
+    //          bootstrapLoader
+    //                |
+    //          commonLoader
+    //            /      \
+    //           /        \
+    //   catalinaLoader  sharedLoader
     // -------------------------------------------------------- Private Methods
 
 
     private void initClassLoaders() {
         try {
+            /*
+            *   创建common类加载器
+            *   注意，通过内部源码分析，这货的实现是URLClassLoader，父加载是SystemClassLoader 即 Launcher$AppClassLoader
+            *   当父加载器没搜索到类，才由他在指定url范围内搜索类
+            */
             commonLoader = createClassLoader("common", null);
             if( commonLoader == null ) {
                 // no config file, default to this loader - we might be in a 'single' env.
                 commonLoader=this.getClass().getClassLoader();
             }
+            //如果server.loader 配置了，则建立 server loader类加载器  默认空
             catalinaLoader = createClassLoader("server", commonLoader);
+            // shared.loader 配置了，则建立 shared loader 类加载器   默认空
             sharedLoader = createClassLoader("shared", commonLoader);
         } catch (Throwable t) {
             handleThrowable(t);
@@ -94,11 +108,11 @@ public final class Bootstrap {
 
     private ClassLoader createClassLoader(String name, ClassLoader parent)
         throws Exception {
-
+        //获取{name}.loader 属性，对应配置在{tomcat_home}/conf/catalina.properties 中
         String value = CatalinaProperties.getProperty(name + ".loader");
         if ((value == null) || (value.equals("")))
             return parent;
-
+        //填充属性中{catalina.base}等系统变量
         value = replace(value);
 
         List<Repository> repositories = new ArrayList<Repository>();
@@ -141,7 +155,7 @@ public final class Bootstrap {
 
     /**
      * System property replacement in the given string.
-     * 
+     *  将传进来的字符串中的${propName} 占位符用系统常量替代
      * @param str The original string
      * @return the modified string
      */
@@ -195,9 +209,9 @@ public final class Bootstrap {
         // Set Catalina path
         setCatalinaHome();
         setCatalinaBase();
-
+        //初试化类加载器
         initClassLoaders();
-
+        //主线程加载所有的class的类加载器都是catalinaLoader
         Thread.currentThread().setContextClassLoader(catalinaLoader);
 
         SecurityClassLoad.securityClassLoad(catalinaLoader);
@@ -205,12 +219,14 @@ public final class Bootstrap {
         // Load our startup class and call its process() method
         if (log.isDebugEnabled())
             log.debug("Loading startup class");
+        //看注释 还是使用JVM 来加载类，没实例化，此处类加载器和Bootstrap的加载器是一样的  Launcher$AppClassLoader
         Class<?> startupClass =
             catalinaLoader.loadClass
             ("org.apache.catalina.startup.Catalina");
         Object startupInstance = startupClass.newInstance();
 
-        // Set the shared extensions class loader
+        /* 使用server loader加载Catalina类， 反射调用其setParentClassLoader（ClassLoader parentClassLoader） 方法，
+         * 参数是sharedLoader */
         if (log.isDebugEnabled())
             log.debug("Setting startup class properties");
         String methodName = "setParentClassLoader";
@@ -221,7 +237,9 @@ public final class Bootstrap {
         Method method =
             startupInstance.getClass().getMethod(methodName, paramTypes);
         method.invoke(startupInstance, paramValues);
+        // 为什么不把 startupInstance强转为 Catalina 直接调用setParentClassLoader（）？ ，这么大费周章用反射
 
+        //设置守护进程引用
         catalinaDaemon = startupInstance;
 
     }
@@ -384,6 +402,9 @@ public final class Bootstrap {
 
 
     /**
+     *
+     * -Dcatalina.home="E:\ndwork\tomcat\home" -Djava.util.logging.config.file="E:\ndwork\tomcat\home\conf\logging.properties"
+     * -Djava.util.logging.manager="org.apache.juli.ClassLoaderLogManager"
      * Main method and entry point when starting Tomcat via the provided
      * scripts.
      *
@@ -392,7 +413,7 @@ public final class Bootstrap {
     public static void main(String args[]) {
 
         if (daemon == null) {
-            // Don't set daemon until init() has completed
+            // 没有设置守护进程，执行init()
             Bootstrap bootstrap = new Bootstrap();
             try {
                 bootstrap.init();

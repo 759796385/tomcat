@@ -34,16 +34,22 @@ public final class SecurityClassLoad {
         if( System.getSecurityManager() == null ){
             return;
         }
-
+        //Tomcat核心class，org.apache.catalina.core路径下的class
         loadCorePackage(loader);
+        //org.apache.coyote.http11  下相关包
         loadCoyotePackage(loader);
+        //org.apache.catalina.loader.ResourceEntry 和org.apache.catalina.loader.WebappClassLoader$PrivilegedFindResourceByName
         loadLoaderPackage(loader);
         loadRealmPackage(loader);
         loadServletsPackage(loader);
+        // tomcat session 相关类
         loadSessionPackage(loader);
+        // org.apache.catalina.util tomcat 工具类
         loadUtilPackage(loader);
+
         loadValvesPackage(loader);
         loadJavaxPackage(loader);
+        //org.apache.catalina.connector 路径下类
         loadConnectorPackage(loader);
         loadTomcatPackage(loader);
     }

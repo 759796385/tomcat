@@ -19,39 +19,7 @@
 package org.apache.catalina.loader;
 
 
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import java.beans.PropertyChangeSupport;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FilePermission;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Constructor;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.net.URLDecoder;
-import java.net.URLStreamHandlerFactory;
-import java.util.ArrayList;
-import java.util.jar.JarFile;
-
-import javax.management.ObjectName;
-import javax.naming.NameClassPair;
-import javax.naming.NamingEnumeration;
-import javax.naming.NamingException;
-import javax.naming.directory.DirContext;
-import javax.servlet.ServletContext;
-
-import org.apache.catalina.Container;
-import org.apache.catalina.Context;
-import org.apache.catalina.Globals;
-import org.apache.catalina.Lifecycle;
-import org.apache.catalina.LifecycleException;
-import org.apache.catalina.LifecycleState;
-import org.apache.catalina.Loader;
+import org.apache.catalina.*;
 import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.mbeans.MBeanUtils;
 import org.apache.catalina.util.LifecycleMBeanBase;
@@ -62,6 +30,21 @@ import org.apache.tomcat.util.ExceptionUtils;
 import org.apache.tomcat.util.compat.JreCompat;
 import org.apache.tomcat.util.modeler.Registry;
 import org.apache.tomcat.util.res.StringManager;
+
+import javax.management.ObjectName;
+import javax.naming.NameClassPair;
+import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
+import javax.naming.directory.DirContext;
+import javax.servlet.ServletContext;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
+import java.io.*;
+import java.lang.reflect.Constructor;
+import java.net.*;
+import java.util.ArrayList;
+import java.util.jar.JarFile;
 
 
 /**
@@ -623,9 +606,11 @@ public class WebappLoader extends LifecycleMBeanBase
             }
 
             // Configure our repositories
+            //配置jar包路径到loaderRepositories属性中
             setRepositories();
+            //配置classpath属性
             setClassPath();
-
+            //权限验证  默认跳过
             setPermissions();
 
             ((Lifecycle) classLoader).start();
@@ -742,7 +727,7 @@ public class WebappLoader extends LifecycleMBeanBase
 
         Class<?> clazz = Class.forName(loaderClass);
         WebappClassLoaderBase classLoader = null;
-
+        //父容器就是 catalinaClassLoader
         if (parentClassLoader == null) {
             parentClassLoader = container.getParentClassLoader();
         }
@@ -861,14 +846,14 @@ public class WebappLoader extends LifecycleMBeanBase
         if (!(container instanceof Context))
             return;
         ServletContext servletContext =
-            ((Context) container).getServletContext();
+                ((Context) container).getServletContext();
         if (servletContext == null)
             return;
 
         loaderRepositories=new ArrayList<String>();
         // Loading the work directory
         File workDir =
-            (File) servletContext.getAttribute(ServletContext.TEMPDIR);
+                (File) servletContext.getAttribute(ServletContext.TEMPDIR);
         if (workDir == null) {
             log.info("No work dir for " + servletContext);
         }
@@ -900,7 +885,7 @@ public class WebappLoader extends LifecycleMBeanBase
             File classRepository = null;
 
             String absoluteClassesPath =
-                servletContext.getRealPath(classesPath);
+                    servletContext.getRealPath(classesPath);
 
             if (absoluteClassesPath != null) {
 
@@ -923,7 +908,7 @@ public class WebappLoader extends LifecycleMBeanBase
 
             if(log.isDebugEnabled())
                 log.debug(sm.getString("webappLoader.classDeploy", classesPath,
-                             classRepository.getAbsolutePath()));
+                        classRepository.getAbsolutePath()));
 
 
             // Adding the repository to the class loader
@@ -933,7 +918,7 @@ public class WebappLoader extends LifecycleMBeanBase
         }
 
         // Setting up the JAR repository (/WEB-INF/lib), if it exists
-
+        //设置webClassLoader的 jar包扫描路径
         String libPath = "/WEB-INF/lib";
 
         classLoader.setJarPath(libPath);
@@ -970,6 +955,7 @@ public class WebappLoader extends LifecycleMBeanBase
             // Looking up directory /WEB-INF/lib in the context
             NamingEnumeration<NameClassPair> enumeration = null;
             try {
+                //  列出/WEB-INF/lib下所有相关的jar包
                 enumeration = libDir.list("");
             } catch (NamingException e) {
                 IOException ioe = new IOException(sm.getString(
@@ -983,14 +969,14 @@ public class WebappLoader extends LifecycleMBeanBase
                 if (!filename.endsWith(".jar"))
                     continue;
 
-                // Copy JAR in the work directory, always (the JAR file
+                // 将Jar文件移至工作目录（webapp各项目WEB-INF/lib） (jar文件将会获得锁，否则可能会被更新或者在运行时被移除)(the JAR file
                 // would get locked otherwise, which would make it
                 // impossible to update it or remove it at runtime)
                 File destFile = new File(destDir, ncPair.getName());
 
                 if( log.isDebugEnabled())
-                log.debug(sm.getString("webappLoader.jarDeploy", filename,
-                                 destFile.getAbsolutePath()));
+                    log.debug(sm.getString("webappLoader.jarDeploy", filename,
+                            destFile.getAbsolutePath()));
 
                 // Bug 45403 - Explicitly call lookup() on the name to check
                 // that the resource is readable. We cannot use resources
@@ -1013,7 +999,7 @@ public class WebappLoader extends LifecycleMBeanBase
 
                 if (copyJars) {
                     if (!copy(jarResource.streamContent(),
-                              new FileOutputStream(destFile))) {
+                            new FileOutputStream(destFile))) {
                         throw new IOException(
                                 sm.getString("webappLoader.copyFailure"));
                     }
@@ -1027,7 +1013,7 @@ public class WebappLoader extends LifecycleMBeanBase
                     // Should ignore and continue loading other jar files
                     // in the dir
                 }
-
+                // 已加载的文件名放入loaderRepositories
                 loaderRepositories.add( filename );
             }
         }
@@ -1035,6 +1021,7 @@ public class WebappLoader extends LifecycleMBeanBase
 
 
     /**
+     * 设置classpath到servletContext上下文属性中
      * Set the appropriate context attribute for our class path.  This
      * is required only because Jasper depends on it.
      */
@@ -1064,11 +1051,13 @@ public class WebappLoader extends LifecycleMBeanBase
         ClassLoader loader = getClassLoader();
 
         if (delegate && loader != null) {
+            //如果是委托模式 设置到父模型
             // Skip the webapp loader for now as delegation is enabled
             loader = loader.getParent();
         }
 
         while (loader != null) {
+            //根据双亲委派原则拼接classpath路径，列出所有jar包的路径，从子包开始构建，再递归到顶级父类
             if (!buildClassPath(servletContext, classpath, loader)) {
                 break;
             }
@@ -1076,13 +1065,14 @@ public class WebappLoader extends LifecycleMBeanBase
         }
 
         if (delegate) {
+            //委托模型，回到webapp路径 构建classpath
             // Delegation was enabled, go back and add the webapp paths
             loader = getClassLoader();
             if (loader != null) {
                 buildClassPath(servletContext, classpath, loader);
             }
         }
-
+        //设置classpath
         this.classpath=classpath.toString();
 
         // Store the assembled class path as a servlet context attribute
