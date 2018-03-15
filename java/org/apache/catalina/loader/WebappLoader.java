@@ -179,7 +179,7 @@ public class WebappLoader extends LifecycleMBeanBase
 
 
     /**
-     * Repositories that are set in the loader, for JMX.
+     * Repositories that are set in the loader, for JMX.类加载器中的jar包，相对war的路径
      */
     private ArrayList<String> loaderRepositories = null;
 
@@ -1021,7 +1021,7 @@ public class WebappLoader extends LifecycleMBeanBase
 
 
     /**
-     * 设置classpath到servletContext上下文属性中
+     * 设置classpath到servletContext上下文属性中，所有相关jar包（不仅仅是当前子项目里）的路径拼成classPath
      * Set the appropriate context attribute for our class path.  This
      * is required only because Jasper depends on it.
      */

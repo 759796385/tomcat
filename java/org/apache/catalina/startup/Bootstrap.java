@@ -206,8 +206,9 @@ public final class Bootstrap {
         throws Exception
     {
 
-        // Set Catalina path
+        // Set catalina.home
         setCatalinaHome();
+        //设置 catalina.base
         setCatalinaBase();
         //初试化类加载器
         initClassLoaders();
@@ -485,13 +486,15 @@ public final class Bootstrap {
      * working directory if it has not been set.
      */
     private void setCatalinaBase() {
-
+        //如果有catalina.base 就不设置
         if (System.getProperty(Globals.CATALINA_BASE_PROP) != null)
             return;
+        //如果catalina.home有配置，则catalina.home=catalina.base
         if (System.getProperty(Globals.CATALINA_HOME_PROP) != null)
             System.setProperty(Globals.CATALINA_BASE_PROP,
                                System.getProperty(Globals.CATALINA_HOME_PROP));
         else
+            //否则 catalina.base = user.dir
             System.setProperty(Globals.CATALINA_BASE_PROP,
                                System.getProperty("user.dir"));
 
@@ -503,13 +506,15 @@ public final class Bootstrap {
      * working directory if it has not been set.
      */
     private void setCatalinaHome() {
-
+        //如果系统属性里有catalina.home就不设置了
         if (System.getProperty(Globals.CATALINA_HOME_PROP) != null)
             return;
+        //获取user.dir文件路径属性，在其下引用bootstrap.jar文件
         File bootstrapJar =
             new File(System.getProperty("user.dir"), "bootstrap.jar");
         if (bootstrapJar.exists()) {
             try {
+                //将catalina.home配置为 user.dir属性的上一级路径
                 System.setProperty
                     (Globals.CATALINA_HOME_PROP,
                      (new File(System.getProperty("user.dir"), ".."))
@@ -520,6 +525,7 @@ public final class Bootstrap {
                                    System.getProperty("user.dir"));
             }
         } else {
+            //如果bootstrap.jar文件不存在,将catalina.home配置为 user.dir属性
             System.setProperty(Globals.CATALINA_HOME_PROP,
                                System.getProperty("user.dir"));
         }

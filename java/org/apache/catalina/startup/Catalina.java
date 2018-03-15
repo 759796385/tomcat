@@ -92,6 +92,7 @@ public class Catalina {
 
     /**
      * The server component we are starting or stopping.
+     * 核心server组件  实现类 StandardServer
      */
     protected Server server = null;
 
@@ -554,11 +555,14 @@ public class Catalina {
         // Create and execute our Digester
         Digester digester = createStartDigester();
 
+        //conf/server.xml 文件源
         InputSource inputSource = null;
+        //conf/server.xml 文件流
         InputStream inputStream = null;
         File file = null;
         try {
             try {
+                //获取 conf/server.xml 文件
                 file = configFile();
                 inputStream = new FileInputStream(file);
                 inputSource = new InputSource(file.toURI().toURL().toString());
@@ -567,6 +571,7 @@ public class Catalina {
                     log.debug(sm.getString("catalina.configFail", file), e);
                 }
             }
+            //这里是没有找到serverl.xml 换种方式加载
             if (inputStream == null) {
                 try {
                     inputStream = getClass().getClassLoader()
@@ -617,6 +622,7 @@ public class Catalina {
             try {
                 inputSource.setByteStream(inputStream);
                 digester.push(this);
+                //解析server.xml 并设置 server
                 digester.parse(inputSource);
             } catch (SAXParseException spe) {
                 log.warn("Catalina.start using " + getConfigFile() + ": " +
