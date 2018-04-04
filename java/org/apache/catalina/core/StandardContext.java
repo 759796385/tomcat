@@ -5499,6 +5499,7 @@ public class StandardContext extends ContainerBase
                 // Start our subordinate components, if any
                 Loader loader = getLoaderInternal();
                 if ((loader != null) && (loader instanceof Lifecycle))
+                 //部署WebappLoader类的启动方式
                     ((Lifecycle) loader).start();
 
                 // since the loader just started, the webapp classloader is now

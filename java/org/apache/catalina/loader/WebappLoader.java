@@ -624,9 +624,11 @@ public class WebappLoader extends LifecycleMBeanBase
             if (!contextName.startsWith("/")) {
                 contextName = "/" + contextName;
             }
+            //JMX是java语言的扩展，是一种规范，提供对受管资源的管理功能。这种管理功能可以具体为查看对象的属性，或者调用对象的方法。
             ObjectName cloname = new ObjectName
                 (MBeanUtils.getDomain(ctx) + ":type=WebappClassLoader,context="
                  + contextName + ",host=" + ctx.getParent().getName());
+            //注册MBean对象到MBeanServer中
             Registry.getRegistry(null, null)
                 .registerComponent(classLoader, cloname, null);
 
