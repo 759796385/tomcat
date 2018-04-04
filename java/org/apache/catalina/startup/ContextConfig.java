@@ -16,64 +16,13 @@
  */
 package org.apache.catalina.startup;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.JarURLConnection;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.StringTokenizer;
-import java.util.concurrent.ConcurrentHashMap;
-
-import javax.naming.Binding;
-import javax.naming.NameNotFoundException;
-import javax.naming.NamingEnumeration;
-import javax.naming.NamingException;
-import javax.servlet.ServletContainerInitializer;
-import javax.servlet.ServletContext;
-import javax.servlet.annotation.HandlesTypes;
-
 import org.apache.catalina.Authenticator;
-import org.apache.catalina.Container;
-import org.apache.catalina.Context;
-import org.apache.catalina.Engine;
-import org.apache.catalina.Globals;
-import org.apache.catalina.Host;
-import org.apache.catalina.Lifecycle;
-import org.apache.catalina.LifecycleEvent;
-import org.apache.catalina.LifecycleListener;
-import org.apache.catalina.Pipeline;
-import org.apache.catalina.Server;
-import org.apache.catalina.Service;
-import org.apache.catalina.Valve;
-import org.apache.catalina.Wrapper;
+import org.apache.catalina.*;
 import org.apache.catalina.core.ContainerBase;
 import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.core.StandardEngine;
 import org.apache.catalina.core.StandardHost;
-import org.apache.catalina.deploy.ErrorPage;
-import org.apache.catalina.deploy.FilterDef;
-import org.apache.catalina.deploy.FilterMap;
-import org.apache.catalina.deploy.LoginConfig;
-import org.apache.catalina.deploy.SecurityConstraint;
-import org.apache.catalina.deploy.ServletDef;
-import org.apache.catalina.deploy.WebXml;
+import org.apache.catalina.deploy.*;
 import org.apache.catalina.util.ContextName;
 import org.apache.catalina.util.Introspection;
 import org.apache.juli.logging.Log;
@@ -84,14 +33,7 @@ import org.apache.naming.resources.ResourceAttributes;
 import org.apache.tomcat.JarScanner;
 import org.apache.tomcat.JarScannerCallback;
 import org.apache.tomcat.util.ExceptionUtils;
-import org.apache.tomcat.util.bcel.classfile.AnnotationElementValue;
-import org.apache.tomcat.util.bcel.classfile.AnnotationEntry;
-import org.apache.tomcat.util.bcel.classfile.ArrayElementValue;
-import org.apache.tomcat.util.bcel.classfile.ClassFormatException;
-import org.apache.tomcat.util.bcel.classfile.ClassParser;
-import org.apache.tomcat.util.bcel.classfile.ElementValue;
-import org.apache.tomcat.util.bcel.classfile.ElementValuePair;
-import org.apache.tomcat.util.bcel.classfile.JavaClass;
+import org.apache.tomcat.util.bcel.classfile.*;
 import org.apache.tomcat.util.buf.UriUtil;
 import org.apache.tomcat.util.descriptor.DigesterFactory;
 import org.apache.tomcat.util.descriptor.InputSourceUtil;
@@ -103,6 +45,18 @@ import org.apache.tomcat.util.scan.Jar;
 import org.apache.tomcat.util.scan.JarFactory;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXParseException;
+
+import javax.naming.Binding;
+import javax.naming.NameNotFoundException;
+import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
+import javax.servlet.ServletContainerInitializer;
+import javax.servlet.ServletContext;
+import javax.servlet.annotation.HandlesTypes;
+import java.io.*;
+import java.net.*;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Startup event listener for a <b>Context</b> that configures the properties
@@ -1219,11 +1173,8 @@ public class ContextConfig implements LifecycleListener {
     }
 
     /**
-     * Scan the web.xml files that apply to the web application and merge them
-     * using the rules defined in the spec. For the global web.xml files,
-     * where there is duplicate configuration, the most specific level wins. ie
-     * an application's web.xml takes precedence over the host level or global
-     * web.xml file.
+     * 扫描web.xml文件，按指定规则应用到web程序中
+     * 对于重复的配置，应用配置优先级大于全局web.xml
      */
     protected void webConfig() {
         /*
@@ -1236,27 +1187,24 @@ public class ContextConfig implements LifecycleListener {
          */
 
         /*
-         * The rules for annotation scanning are not as clear-cut as one might
-         * think. Tomcat implements the following process:
-         * - As per SRV.1.6.2, Tomcat will scan for annotations regardless of
-         *   which Servlet spec version is declared in web.xml. The EG has
-         *   confirmed this is the expected behaviour.
+             注解扫描规则按如下进行
+         * - As per SRV.1.6.2, 首先扫描注册在Web.xml中的servlet
          * - As per http://java.net/jira/browse/SERVLET_SPEC-36, if the main
          *   web.xml is marked as metadata-complete, JARs are still processed
          *   for SCIs.
          * - If metadata-complete=true and an absolute ordering is specified,
          *   JARs excluded from the ordering are also excluded from the SCI
          *   processing.
-         * - If an SCI has a @HandlesType annotation then all classes (except
-         *   those in JARs excluded from an absolute ordering) need to be
-         *   scanned to check if they match.
+         * - If an SCI has a 标记了@HandlesType注解的类都会被扫描到  (除非那些jar包被排除在
+         *  范围之外)
          */
         Set<WebXml> defaults = new HashSet<WebXml>();
+        //解析默认的conf/web.xml  默认一般有  default和jsp
         defaults.add(getDefaultWebXmlFragment());
 
         WebXml webXml = createWebXml();
 
-        // Parse context level web.xml
+        // 解析应用上下文中的context级别的 web.xml
         InputSource contextWebXml = getContextWebXmlSource();
         parseWebXml(contextWebXml, webXml, false);
 
@@ -1264,23 +1212,21 @@ public class ContextConfig implements LifecycleListener {
 
         // Ordering is important here
 
-        // Step 1. Identify all the JARs packaged with the application
-        // If the JARs have a web-fragment.xml it will be parsed at this
-        // point.
+        // Step 1. 区分程序中所有的jar包，如果jars中包含web-fragment.xml则会在这一步解析
         Map<String,WebXml> fragments = processJarsForWebFragments(webXml);
 
-        // Step 2. Order the fragments.
+        // Step 2. 排序 fragments.
         Set<WebXml> orderedFragments = null;
         orderedFragments =
                 WebXml.orderWebFragments(webXml, fragments, sContext);
 
-        // Step 3. Look for ServletContainerInitializer implementations
+        // Step 3. 寻找 ServletContainerInitializer 实现
         if (ok) {
             processServletContainerInitializers();
         }
 
         if  (!webXml.isMetadataComplete() || typeInitializerMap.size() > 0) {
-            // Step 4. Process /WEB-INF/classes for annotations
+            // Step 4. 处理 /WEB-INF/classes 中注解
             if (ok) {
                 // Hack required by Eclipse's "serve modules without
                 // publishing" feature since this backs WEB-INF/classes by
@@ -1360,6 +1306,7 @@ public class ContextConfig implements LifecycleListener {
         } else {
             webXml.merge(defaults);
             convertJsps(webXml);
+            //配置servlet的入口
             webXml.configureContext(context);
         }
 
@@ -1389,6 +1336,7 @@ public class ContextConfig implements LifecycleListener {
                     resourceJars.add(fragment);
                 }
             }
+            //扫描所有resource中jar中META-INF/resources/ 文件，添加到Context中
             processResourceJARs(resourceJars);
             // See also StandardContext.resourcesStart() for
             // WEB-INF/classes/META-INF/resources configuration
@@ -1858,6 +1806,7 @@ public class ContextConfig implements LifecycleListener {
         }
 
         try {
+            //解析对应的web.xml ，注册其中配置 主要是servletmapping 和监听器
             digester.parse(source);
 
             if (handler.getWarnings().size() > 0 ||
